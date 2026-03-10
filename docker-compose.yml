@@ -16,6 +16,10 @@ services:
       - "8000:8000"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
-      - ./data:/data
+      - vskin_data:/data
     environment:
       - SERVER__ROOT_PATH=${SERVER__ROOT_PATH:-/skinapi}
+
+volumes:
+  vskin_data:
+    name: vskin_data
