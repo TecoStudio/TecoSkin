@@ -137,7 +137,7 @@ import {
 const route = useRoute()
 const { push } = useRouter()
 const isHome = computed(() => route.path === '/')
-const isAuthPage = computed(() => ['/login', '/register', '/reset-password'].includes(route.path))
+const isAuthPage = computed(() => ['/login', '/register', '/reset-password', '/oauth/authorize'].includes(route.path))
 const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
 const enableSkinLibrary = ref(localStorage.getItem('enable_skin_library_cache') === 'true' || localStorage.getItem('enable_skin_library_cache') === null)
 const jwtToken = ref(localStorage.getItem('jwt') || '')
@@ -200,6 +200,7 @@ const adminNavLinks = [
   { path: '/admin/invites', title: '邀请码管理', icon: Tools },
   { path: '/admin/settings', title: '站点设置', icon: Setting },
   { path: '/admin/email', title: '邮件服务', icon: Message },
+  { path: '/admin/oauth-apps', title: 'OAuth 应用', icon: Link },
   { path: '/admin/mojang', title: 'Fallback 服务', icon: Link },
   { path: '/admin/carousel', title: '首页图片', icon: Picture },
 ]

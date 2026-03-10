@@ -6,6 +6,7 @@ import LoginView from '../views/LoginView.vue'
 import ResetPassword from '../views/ResetPassword.vue'
 import UserDashboard from '../views/UserDashboard.vue'
 import SkinLibraryView from '../views/SkinLibraryView.vue'
+import OAuthAuthorizeView from '../views/OAuthAuthorizeView.vue'
 
 // Dashboard Components
 import DashboardWardrobe from '@/components/dashboard/DashboardWardrobe.vue'
@@ -20,6 +21,7 @@ import AdminInviteList from '@/components/admin/AdminInviteList.vue'
 import AdminMojang from '@/components/admin/AdminMojang.vue'
 import AdminCarousel from '@/components/admin/AdminCarousel.vue'
 import AdminEmail from '@/components/admin/AdminEmail.vue'
+import AdminOAuthApps from '@/components/admin/AdminOAuthApps.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -79,6 +81,11 @@ const router = createRouter({
           name: 'admin-carousel',
           component: AdminCarousel,
         },
+        {
+          path: 'oauth-apps',
+          name: 'admin-oauth-apps',
+          component: AdminOAuthApps,
+        },
       ],
     },
     {
@@ -120,6 +127,11 @@ const router = createRouter({
       path: '/skin-library',
       name: 'skin-library',
       component: SkinLibraryView,
+    },
+    {
+      path: '/oauth/authorize',
+      name: 'oauth-authorize',
+      component: OAuthAuthorizeView,
     },
   ],
 })

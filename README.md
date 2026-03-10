@@ -13,6 +13,7 @@
 * **用户系统完整**：支持注册、登录、密码找回、邮箱验证码、邀请码注册与 JWT 鉴权。
 * **材质管理完善**：支持皮肤与披风上传、公开材质库、角色绑定，以及 3D 预览。
 * **后台能力充足**：支持站点设置、用户管理、邮件服务、轮播图、Fallback 节点配置等常见运维需求。
+* **OAuth 2 对外登录**：支持管理员创建外部应用（appid/secret/回调地址），外部网站可通过 vSkin 账号完成授权登录。
 * **可扩展部署**：默认推荐根路径部署，也支持前端子路径部署。
 
 > 注意：默认 Docker 方案会将后端 API 固定暴露在 `/skinapi/*` 下，以避免和前端 SPA 路由冲突。
@@ -179,6 +180,34 @@ server {
 2. 第一个注册账户会自动成为管理员。
 3. 登录后台后完成站点设置、邮件服务和注册策略配置。
 4. 检查 `config.yaml` 中的 `site_url` 与 `api_url` 是否已经替换为正式域名。
+5. 如需外部站点接入登录，进入后台的「OAuth 应用」页面创建应用并保存 `client_secret`。
+
+### OAuth 2 对接说明
+
+管理员在后台 `OAuth 应用` 中创建应用后，会获得以下信息：
+
+* `appid`（即 `client_id`，从 1 开始自动递增）
+* `client_secret`（自动生成，仅创建/重置时完整展示）
+* `redirect_uri`（你填写的回调地址）
+
+授权流程（Authorization Code）：
+
+1. 外部网站将用户跳转到：`https://你的站点/oauth/authorize?client_id={appid}&redirect_uri={redirect_uri}&state={state}`
+2. 用户在 vSkin 页面登录并确认授权。
+3. vSkin 回跳到 `redirect_uri`，并附带 `code`（以及原始 `state`）。
+4. 外部网站向令牌接口提交表单：
+  * `POST {api_url}/oauth/token`
+  * `grant_type=authorization_code`
+  * `code={code}`
+  * `client_id={appid}`
+  * `client_secret={client_secret}`
+  * `redirect_uri={redirect_uri}`
+5. 使用返回的 `access_token` 调用：`GET {api_url}/oauth/userinfo`，并带上 `Authorization: Bearer {access_token}`。
+
+说明：
+
+* `api_url` 对应配置中的 `server.api_url`（通常是 `https://域名/skinapi`）。
+* `redirect_uri` 必须与后台配置完全一致（包括路径与大小写）。
 
 ## 本地开发与贡献
 

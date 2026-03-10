@@ -59,11 +59,12 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Message, Lock, Right } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const route = useRoute()
 const formRef = ref(null)
 const loading = ref(false)
 
@@ -113,7 +114,8 @@ async function login() {
 
     // 等待一下再跳转，确保 localStorage 保存完成
     setTimeout(() => {
-      router.push('/dashboard')
+      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+      router.push(redirect || '/dashboard')
     }, 300)
   } catch (e) {
     if (e.response?.data?.detail) {

@@ -9,6 +9,7 @@ from fastapi import (
     UploadFile,
     File,
     Form,
+    Query,
 )
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
@@ -21,7 +22,7 @@ router = APIRouter()
 security = HTTPBearer()
 
 
-def setup_routes(db: Database, site_backend, rate_limiter, config: Config):
+def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config: Config):
     """设置路由（注入依赖）"""
 
     async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
@@ -328,5 +329,62 @@ def setup_routes(db: Database, site_backend, rate_limiter, config: Config):
     @router.get("/public/carousel")
     async def get_carousel():
         return await site_backend.list_carousel_images()
+
+    # ========== OAuth 2 ========== 
+
+    @router.get("/oauth/authorize/check")
+    async def oauth_authorize_check(
+        client_id: int = Query(...),
+        redirect_uri: str = Query(...),
+        state: str = Query(default=""),
+    ):
+        return await oauth_backend.build_authorize_preview(client_id, redirect_uri, state)
+
+    @router.post("/oauth/authorize/decision")
+    async def oauth_authorize_decision(
+        payload: dict = Depends(get_current_user),
+        body: dict = Body(...),
+    ):
+        client_id = body.get("client_id")
+        redirect_uri = body.get("redirect_uri")
+        state = body.get("state", "")
+        approved = bool(body.get("approved", False))
+        scope = body.get("scope", "basic")
+        if client_id is None or not redirect_uri:
+            raise HTTPException(status_code=400, detail="client_id and redirect_uri required")
+        return await oauth_backend.authorize_decision(
+            user_id=payload.get("sub"),
+            client_id=int(client_id),
+            redirect_uri=redirect_uri,
+            state=state,
+            approved=approved,
+            scope=scope,
+        )
+
+    @router.post("/oauth/token")
+    async def oauth_token(
+        grant_type: str = Form(...),
+        code: str = Form(...),
+        client_id: int = Form(...),
+        client_secret: str = Form(...),
+        redirect_uri: str = Form(...),
+    ):
+        return await oauth_backend.exchange_code(
+            grant_type=grant_type,
+            code=code,
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+        )
+
+    @router.get("/oauth/userinfo")
+    async def oauth_userinfo(request: Request):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = auth_header[7:].strip()
+        if not access_token:
+            raise HTTPException(status_code=401, detail="missing bearer token")
+        return await oauth_backend.get_userinfo(access_token)
 
     return router

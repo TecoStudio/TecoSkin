@@ -20,7 +20,7 @@ router = APIRouter()
 security = HTTPBearer()
 
 
-def setup_routes(db: Database, admin_backend, rate_limiter, config: Config):
+def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, config: Config):
     """设置路由（注入依赖）"""
 
     async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
@@ -219,5 +219,35 @@ def setup_routes(db: Database, admin_backend, rate_limiter, config: Config):
     @router.delete("/admin/carousel/{filename}")
     async def delete_carousel(filename: str, payload: dict = Depends(admin_required)):
         return await admin_backend.delete_carousel_image(filename)
+
+    # ========== OAuth 2 App Management ==========
+
+    @router.get("/admin/oauth/meta")
+    async def get_oauth_meta(payload: dict = Depends(admin_required)):
+        return await oauth_backend.admin_meta()
+
+    @router.get("/admin/oauth/apps")
+    async def get_oauth_apps(payload: dict = Depends(admin_required)):
+        return await oauth_backend.list_apps()
+
+    @router.post("/admin/oauth/apps")
+    async def create_oauth_app(payload: dict = Depends(admin_required), body: dict = Body(...)):
+        client_name = body.get("client_name", "")
+        redirect_uri = body.get("redirect_uri", "")
+        return await oauth_backend.create_app(client_name, redirect_uri)
+
+    @router.put("/admin/oauth/apps/{app_id}")
+    async def update_oauth_app(app_id: int, payload: dict = Depends(admin_required), body: dict = Body(...)):
+        client_name = body.get("client_name", "")
+        redirect_uri = body.get("redirect_uri", "")
+        return await oauth_backend.update_app(app_id, client_name, redirect_uri)
+
+    @router.post("/admin/oauth/apps/{app_id}/reset-secret")
+    async def reset_oauth_app_secret(app_id: int, payload: dict = Depends(admin_required)):
+        return await oauth_backend.reset_app_secret(app_id)
+
+    @router.delete("/admin/oauth/apps/{app_id}")
+    async def delete_oauth_app(app_id: int, payload: dict = Depends(admin_required)):
+        return await oauth_backend.delete_app(app_id)
 
     return router

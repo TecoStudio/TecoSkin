@@ -4,6 +4,7 @@ from .modules.setting import SettingModule
 from .modules.texture import TextureModule
 from .modules.verification import VerificationModule
 from .modules.fallback import FallbackModule
+from .modules.oauth import OAuthModule
 from config_loader import config
 
 INIT_SQL = """
@@ -110,6 +111,40 @@ CREATE TABLE IF NOT EXISTS verification_codes (
     expires_at INTEGER NOT NULL,
     PRIMARY KEY(email, type)
 );
+
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    app_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_name TEXT DEFAULT '',
+    client_secret_hash TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS oauth_codes (
+    code TEXT PRIMARY KEY,
+    app_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    scope TEXT DEFAULT 'basic',
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    used INTEGER DEFAULT 0,
+    FOREIGN KEY(app_id) REFERENCES oauth_clients(app_id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+    access_token TEXT PRIMARY KEY,
+    refresh_token TEXT UNIQUE NOT NULL,
+    app_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    scope TEXT DEFAULT 'basic',
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(app_id) REFERENCES oauth_clients(app_id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 class Database(BaseDB):
@@ -120,6 +155,7 @@ class Database(BaseDB):
         self.texture = TextureModule(self)
         self.verification = VerificationModule(self)
         self.fallback = FallbackModule(self)
+        self.oauth = OAuthModule(self)
 
     async def init(self):
         """初始化表结构及执行迁移"""
@@ -320,6 +356,15 @@ class Database(BaseDB):
             if "is_public" not in columns:
                 await conn.execute(
                     "ALTER TABLE user_textures ADD COLUMN is_public INTEGER DEFAULT 0"
+                )
+                await conn.commit()
+
+            # 兼容旧库：oauth_clients 增加 client_name 列
+            cursor = await conn.execute("PRAGMA table_info(oauth_clients)")
+            columns = [row[1] for row in await cursor.fetchall()]
+            if "client_name" not in columns:
+                await conn.execute(
+                    "ALTER TABLE oauth_clients ADD COLUMN client_name TEXT DEFAULT ''"
                 )
                 await conn.commit()
 
