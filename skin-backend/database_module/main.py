@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     display_name TEXT DEFAULT '',
     avatar_hash TEXT DEFAULT NULL,
     is_admin INTEGER DEFAULT 0,
+    user_group TEXT DEFAULT 'user',
     banned_until INTEGER DEFAULT NULL
 );
 
@@ -191,6 +192,35 @@ class Database(BaseDB):
                     "ALTER TABLE users ADD COLUMN avatar_hash TEXT DEFAULT NULL"
                 )
                 await conn.commit()
+
+            # 兼容旧库：users 增加 user_group 列并迁移历史管理员数据
+            if "user_group" not in user_columns:
+                await conn.execute(
+                    "ALTER TABLE users ADD COLUMN user_group TEXT DEFAULT 'user'"
+                )
+                await conn.execute("UPDATE users SET user_group='admin' WHERE is_admin=1")
+                await conn.execute("UPDATE users SET user_group='user' WHERE is_admin=0 OR is_admin IS NULL")
+                await conn.execute(
+                    """
+                    UPDATE users
+                    SET user_group='super_admin', is_admin=1
+                    WHERE id=(
+                        SELECT id
+                        FROM users
+                        WHERE user_group='admin'
+                        ORDER BY rowid ASC
+                        LIMIT 1
+                    )
+                    """
+                )
+                await conn.commit()
+
+            # 防御性修复：确保 user_group 与 is_admin 一致
+            await conn.execute("UPDATE users SET user_group='admin' WHERE is_admin=1 AND (user_group IS NULL OR user_group='')")
+            await conn.execute("UPDATE users SET user_group='user' WHERE (is_admin=0 OR is_admin IS NULL) AND (user_group IS NULL OR user_group='')")
+            await conn.execute("UPDATE users SET is_admin=1 WHERE user_group IN ('super_admin', 'admin')")
+            await conn.execute("UPDATE users SET is_admin=0 WHERE user_group NOT IN ('super_admin', 'admin')")
+            await conn.commit()
 
             # 兼容旧库：fallback_endpoints 增加 skin_domains 列
             cursor = await conn.execute("PRAGMA table_info(fallback_endpoints)")

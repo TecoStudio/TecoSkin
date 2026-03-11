@@ -425,6 +425,11 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
         access_token = get_oauth_bearer_token(request)
         return await oauth_backend.get_email_info(access_token)
 
+    @router.get("/oauth/permissions")
+    async def oauth_permissions(request: Request):
+        access_token = get_oauth_bearer_token(request)
+        return await oauth_backend.get_permissions_info(access_token)
+
     @router.get("/oauth/skin")
     async def oauth_skin(request: Request):
         access_token = get_oauth_bearer_token(request)

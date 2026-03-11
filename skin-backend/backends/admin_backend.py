@@ -7,6 +7,16 @@ import uuid
 from fastapi import HTTPException
 
 from utils.typing import InviteCode
+from utils.user_groups import (
+    SUPER_ADMIN_GROUP,
+    ADMIN_GROUP,
+    USER_GROUP,
+    resolve_user_group,
+    is_admin_group,
+    can_grant_admin,
+    get_user_group_meta,
+    normalize_user_group,
+)
 from database_module import Database
 from config_loader import Config
 
@@ -222,12 +232,15 @@ class AdminBackend:
         result = []
         for row in users:
             profile_count = await self.db.user.count_profiles_by_user(row.id)
+            user_group = resolve_user_group(getattr(row, "user_group", None), row.is_admin)
             result.append({
                 "id": row.id,
                 "email": row.email,
                 "display_name": row.display_name or "",
                 "avatar_url": self._avatar_url_from_hash(row.avatar_hash),
-                "is_admin": bool(row.is_admin),
+                "is_admin": bool(is_admin_group(user_group)),
+                "user_group": user_group,
+                "user_group_meta": get_user_group_meta(user_group),
                 "banned_until": row.banned_until,
                 "profile_count": profile_count,
             })
@@ -250,13 +263,16 @@ class AdminBackend:
             for p in profiles
         ]
 
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
         return {
             "id": user_row.id,
             "email": user_row.email,
             "lang": user_row.preferredLanguage,
             "display_name": user_row.display_name,
             "avatar_url": self._avatar_url_from_hash(user_row.avatar_hash),
-            "is_admin": bool(user_row.is_admin),
+            "is_admin": bool(is_admin_group(user_group)),
+            "user_group": user_group,
+            "user_group_meta": get_user_group_meta(user_group),
             "banned_until": user_row.banned_until,
             "profiles": profiles_list,
         }
@@ -264,16 +280,63 @@ class AdminBackend:
     async def toggle_user_admin(self, user_id: str, actor_id: str):
         if actor_id == user_id:
             raise HTTPException(status_code=403, detail="cannot change own admin status")
-        new_status = await self.db.user.toggle_admin(user_id)
-        if new_status == -1:
+
+        actor = await self.db.user.get_by_id(actor_id)
+        if not actor:
+            raise HTTPException(status_code=401, detail="actor not found")
+        actor_group = resolve_user_group(getattr(actor, "user_group", None), actor.is_admin)
+        if not can_grant_admin(actor_group):
+            raise HTTPException(status_code=403, detail="only super admin can change admin group")
+
+        target = await self.db.user.get_by_id(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="user not found")
+        target_group = resolve_user_group(getattr(target, "user_group", None), target.is_admin)
+
+        if target_group == SUPER_ADMIN_GROUP:
+            raise HTTPException(status_code=403, detail="cannot change super admin group")
+
+        next_group = USER_GROUP if is_admin_group(target_group) else ADMIN_GROUP
+        ok = await self.db.user.set_user_group(user_id, next_group)
+        if not ok:
+            raise HTTPException(status_code=404, detail="user not found")
+
+    async def set_user_group(self, user_id: str, actor_id: str, user_group: str):
+        if actor_id == user_id:
+            raise HTTPException(status_code=403, detail="cannot change own user group")
+
+        actor = await self.db.user.get_by_id(actor_id)
+        if not actor:
+            raise HTTPException(status_code=401, detail="actor not found")
+        actor_group = resolve_user_group(getattr(actor, "user_group", None), actor.is_admin)
+
+        target = await self.db.user.get_by_id(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="user not found")
+        target_group = resolve_user_group(getattr(target, "user_group", None), target.is_admin)
+
+        desired_group = normalize_user_group(user_group)
+
+        if target_group == SUPER_ADMIN_GROUP:
+            raise HTTPException(status_code=403, detail="cannot change super admin group")
+
+        if desired_group == SUPER_ADMIN_GROUP:
+            raise HTTPException(status_code=403, detail="cannot assign super admin group")
+
+        if desired_group == ADMIN_GROUP and not can_grant_admin(actor_group):
+            raise HTTPException(status_code=403, detail="only super admin can assign admin group")
+
+        ok = await self.db.user.set_user_group(user_id, desired_group)
+        if not ok:
             raise HTTPException(status_code=404, detail="user not found")
 
     async def delete_user(self, user_id: str, is_admin_action=False):
         user_row = await self.db.user.get_by_id(user_id)
         if not user_row:
             raise HTTPException(status_code=404, detail="user not found")
-        if user_row.is_admin and is_admin_action:
-            raise HTTPException(status_code=403, detail="cannot delete admin user")
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
+        if user_group == SUPER_ADMIN_GROUP and is_admin_action:
+            raise HTTPException(status_code=403, detail="cannot delete super admin user")
         await self.db.user.delete(user_id)
         return True
 
@@ -281,8 +344,9 @@ class AdminBackend:
         user_row = await self.db.user.get_by_id(user_id)
         if not user_row:
             raise HTTPException(status_code=404, detail="user not found")
-        if user_row.is_admin:
-            raise HTTPException(status_code=403, detail="cannot ban admin user")
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
+        if user_group == SUPER_ADMIN_GROUP:
+            raise HTTPException(status_code=403, detail="cannot ban super admin user")
         await self.db.user.ban(user_id, banned_until)
         return banned_until
 

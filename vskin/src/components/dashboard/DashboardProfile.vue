@@ -80,7 +80,7 @@
             <el-icon><Check /></el-icon>
             保存修改
           </el-button>
-          <el-button type="danger" @click="showDeleteDialog = true" size="large" v-if="!user?.is_admin">
+          <el-button type="danger" @click="showDeleteDialog = true" size="large" v-if="!isPrivilegedUser">
             <el-icon><Delete /></el-icon>
             注销账号
           </el-button>
@@ -143,6 +143,10 @@ const deleteConfirmText = ref('')
 const motionDisabled = ref(localStorage.getItem('motionDisabled') === '1')
 
 const avatarUrl = computed(() => user.value?.avatar_url || '')
+const isPrivilegedUser = computed(() => {
+  const group = user.value?.user_group || (user.value?.is_admin ? 'admin' : 'user')
+  return group === 'super_admin' || group === 'admin'
+})
 
 watch(() => user.value, (newUser) => {
   if (newUser) {

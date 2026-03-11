@@ -138,7 +138,7 @@ async def auth_headers(user_factory):
     普通用户授权头 Fixture
     """
     user = await user_factory(is_admin=False)
-    token = create_jwt_token(user.id, is_admin=False, expire_days=1)
+    token = create_jwt_token(user.id, is_admin=False, expire_days=1, user_group="user")
     return {"Authorization": f"Bearer {token}", "X-User-ID": user.id} # 方便测试中获取 ID
 
 @pytest.fixture
@@ -147,7 +147,7 @@ async def admin_headers(user_factory):
     管理员授权头 Fixture
     """
     user = await user_factory(is_admin=True)
-    token = create_jwt_token(user.id, is_admin=True, expire_days=1)
+    token = create_jwt_token(user.id, is_admin=True, expire_days=1, user_group="admin")
     return {"Authorization": f"Bearer {token}", "X-User-ID": user.id}
 
 @pytest.fixture

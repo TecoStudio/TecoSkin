@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from config_loader import Config
 from database_module import Database
+from utils.user_groups import resolve_user_group, get_user_group_meta, is_admin_group
 
 
 class OAuthBackend:
@@ -31,6 +32,10 @@ class OAuthBackend:
         "skin": {
             "label": "当前皮肤",
             "description": "读取当前正在使用的皮肤 PNG 源图",
+        },
+        "permission": {
+            "label": "权限组",
+            "description": "读取用户权限组信息",
         },
     }
 
@@ -210,6 +215,7 @@ class OAuthBackend:
             "authorize_endpoint": f"{site_url}/oauth/authorize" if site_url else "/oauth/authorize",
             "token_endpoint": f"{api_url}/oauth/token" if api_url else "/oauth/token",
             "userinfo_endpoint": f"{api_url}/oauth/userinfo" if api_url else "/oauth/userinfo",
+            "permissions_endpoint": f"{api_url}/oauth/permissions" if api_url else "/oauth/permissions",
             "skin_endpoint": f"{api_url}/oauth/skin" if api_url else "/oauth/skin",
             "sample_redirect_uri": sample_redirect,
         }
@@ -386,7 +392,28 @@ class OAuthBackend:
         if self._has_scope(scope_text, "email"):
             payload["email"] = user.email
 
+        if self._has_scope(scope_text, "permission"):
+            user_group = resolve_user_group(getattr(user, "user_group", None), user.is_admin)
+            payload["user_group"] = user_group
+            payload["user_group_meta"] = get_user_group_meta(user_group)
+            payload["is_admin"] = bool(is_admin_group(user_group))
+
         return payload
+
+    async def get_permissions_info(self, access_token: str) -> dict:
+        record, user = await self._resolve_token_and_user(access_token)
+        scope_text = record.get("scope") or "userinfo"
+        if not self._has_scope(scope_text, "permission"):
+            raise HTTPException(status_code=403, detail="missing permission scope")
+
+        user_group = resolve_user_group(getattr(user, "user_group", None), user.is_admin)
+        return {
+            "sub": user.id,
+            "user_group": user_group,
+            "user_group_meta": get_user_group_meta(user_group),
+            "is_admin": bool(is_admin_group(user_group)),
+            "scope": scope_text,
+        }
 
     async def get_profile_info(self, access_token: str) -> dict:
         record, user = await self._resolve_token_and_user(access_token)

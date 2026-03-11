@@ -13,6 +13,13 @@ from utils.jwt_utils import create_jwt_token
 from utils.email_utils import EmailSender
 from utils.uuid_utils import generate_random_uuid
 from utils.typing import User, PlayerProfile
+from utils.user_groups import (
+    SUPER_ADMIN_GROUP,
+    USER_GROUP,
+    resolve_user_group,
+    is_admin_group,
+    get_user_group_meta,
+)
 from utils.image_utils import extract_skin_head_avatar
 from database_module import Database
 from config_loader import Config
@@ -115,6 +122,7 @@ class SiteBackend:
             user_row.password,
             user_row.is_admin,
         )
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), is_admin)
 
         if not verify_password(password, password_hash):
             raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -125,7 +133,7 @@ class SiteBackend:
 
         expire_days_str = await self.db.setting.get("jwt_expire_days", "7")
         expire_days = int(expire_days_str)
-        token = create_jwt_token(user_id, bool(is_admin), expire_days)
+        token = create_jwt_token(user_id, bool(is_admin_group(user_group)), expire_days, user_group)
 
         return {"token": token, "user_id": user_id}
 
@@ -186,7 +194,14 @@ class SiteBackend:
         password_hash = hash_password(password)
         user_id = generate_random_uuid()
         try:
-            new_user = User(user_id, email, password_hash, 1 if is_first_user else 0)
+            user_group = SUPER_ADMIN_GROUP if is_first_user else USER_GROUP
+            new_user = User(
+                user_id,
+                email,
+                password_hash,
+                1 if is_admin_group(user_group) else 0,
+                user_group=user_group,
+            )
             new_user.display_name = username
             await self.db.user.create(new_user)
         except Exception:
@@ -232,6 +247,7 @@ class SiteBackend:
             for p in profiles
         ]
 
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
         return {
             "id": user_row.id,
             "email": user_row.email,
@@ -239,7 +255,9 @@ class SiteBackend:
             "display_name": user_row.display_name,
             "avatar_hash": user_row.avatar_hash,
             "avatar_url": self._avatar_url_from_hash(user_row.avatar_hash),
-            "is_admin": bool(user_row.is_admin),
+            "is_admin": bool(is_admin_group(user_group)),
+            "user_group": user_group,
+            "user_group_meta": get_user_group_meta(user_group),
             "banned_until": user_row.banned_until,
             "profiles": profiles_list,
         }
@@ -285,13 +303,16 @@ class SiteBackend:
         if not user:
             raise HTTPException(status_code=401, detail="invalid token")
 
+        user_group = resolve_user_group(getattr(user, "user_group", None), user.is_admin)
         return {
             "sub": user.id,
             "username": user.display_name,
             "display_name": user.display_name,
             "email": user.email,
             "avatar_url": self._avatar_url_from_hash(user.avatar_hash),
-            "is_admin": bool(user.is_admin),
+            "is_admin": bool(is_admin_group(user_group)),
+            "user_group": user_group,
+            "user_group_meta": get_user_group_meta(user_group),
         }
 
     async def refresh_token(self, user_id: str) -> Dict[str, Any]:
@@ -299,12 +320,13 @@ class SiteBackend:
         if not user_row:
             raise HTTPException(status_code=404, detail="user not found")
 
-        is_admin = bool(user_row.is_admin)
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
+        is_admin = bool(is_admin_group(user_group))
         expire_days_str = await self.db.setting.get("jwt_expire_days", "7")
         expire_days = int(expire_days_str)
-        token = create_jwt_token(user_id, is_admin, expire_days)
+        token = create_jwt_token(user_id, is_admin, expire_days, user_group)
 
-        return {"token": token, "is_admin": is_admin}
+        return {"token": token, "is_admin": is_admin, "user_group": user_group}
 
     async def update_user_info(self, user_id: str, data: Dict[str, Any]):
         if "email" in data and data["email"]:
@@ -337,11 +359,13 @@ class SiteBackend:
         if not user_row:
             raise HTTPException(status_code=404, detail="user not found")
 
-        if user_row.is_admin and not is_admin_action:
+        user_group = resolve_user_group(getattr(user_row, "user_group", None), user_row.is_admin)
+
+        if is_admin_group(user_group) and not is_admin_action:
             raise HTTPException(status_code=403, detail="管理员不能删除自己的账号")
 
-        if user_row.is_admin and is_admin_action:
-            raise HTTPException(status_code=403, detail="cannot delete admin user")
+        if user_group == SUPER_ADMIN_GROUP and is_admin_action:
+            raise HTTPException(status_code=403, detail="cannot delete super admin user")
 
         await self.db.user.delete(user_id)
         return True

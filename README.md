@@ -14,6 +14,7 @@
 * **材质管理完善**：支持皮肤与披风上传、公开材质库、角色绑定，以及 3D 预览。
 * **方形头像系统**：默认使用 Steve 头部平面头像；用户可从已上传/已收藏皮肤中一键截取正脸设为头像。
 * **后台能力充足**：支持站点设置、用户管理、邮件服务、轮播图、Fallback 节点配置等常见运维需求。
+* **用户组权限模型**：内置超级管理员、管理员、用户、老师四种用户组，支持可视化展示与后台分组管理。
 * **OAuth 2 对外登录**：支持管理员创建外部应用（appid/secret/回调地址），外部网站可通过 vSkin 账号完成授权登录。
 * **可扩展部署**：默认推荐根路径部署，也支持前端子路径部署。
 
@@ -178,10 +179,13 @@ server {
 首次启动后，建议按以下顺序完成初始化：
 
 1. 访问站点首页并注册第一个账户。
-2. 第一个注册账户会自动成为管理员。
-3. 登录后台后完成站点设置、邮件服务和注册策略配置。
-4. 检查 `config.yaml` 中的 `site_url` 与 `api_url` 是否已经替换为正式域名。
-5. 如需外部站点接入登录，进入后台的「OAuth 应用」页面创建应用并保存 `client_secret`。
+2. 第一个注册账户会自动成为超级管理员（红色标签）。
+3. 其余新注册账户默认为用户（绿色标签）。
+4. 后台可将用户调整为老师（紫色标签）或管理员（蓝色标签）。
+5. 管理员拥有与超级管理员近似的后台能力，但不能将他人设为管理员；仅超级管理员可任命管理员。
+6. 登录后台后完成站点设置、邮件服务和注册策略配置。
+7. 检查 `config.yaml` 中的 `site_url` 与 `api_url` 是否已经替换为正式域名。
+8. 如需外部站点接入登录，进入后台的「OAuth 应用」页面创建应用并保存 `client_secret`。
 
 ### OAuth 2 对接说明
 
@@ -210,6 +214,7 @@ server {
 * `userinfo`：读取基础资料（默认）
 * `email`：读取邮箱
 * `skin`：读取当前正在使用的皮肤 PNG 源图
+* `permission`：读取用户组信息（如 `super_admin` / `admin` / `user` / `teacher`）
 
 如果第三方申请了 `skin` scope，可继续调用：
 
@@ -231,13 +236,15 @@ server {
 * `profile`：用户名
 * `avatar`：头像地址
 * `email`：邮箱
+* `permission`：用户权限组信息
 
 可用接口（均需 `Authorization: Bearer {access_token}`）：
 
-* `GET {api_url}/oauth/userinfo`：按 scope 返回综合信息（如 `sub`、`username`、`avatar_url`、`email`）
+* `GET {api_url}/oauth/userinfo`：按 scope 返回综合信息（如 `sub`、`username`、`avatar_url`、`email`、`user_group`）
 * `GET {api_url}/oauth/profile`：用户名信息接口
 * `GET {api_url}/oauth/avatar`：头像信息接口
 * `GET {api_url}/oauth/email`：邮箱信息接口
+* `GET {api_url}/oauth/permissions`：用户组信息接口（需 `permission` scope）
 
 头像相关接口：
 

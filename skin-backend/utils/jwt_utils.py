@@ -10,7 +10,12 @@ JWT_SECRET = config.get("jwt.secret", "dev-secret")
 JWT_ALGO = "HS256"
 
 
-def create_jwt_token(user_id: str, is_admin: bool, expire_days: int) -> str:
+def create_jwt_token(
+    user_id: str,
+    is_admin: bool,
+    expire_days: int,
+    user_group: str = "user",
+) -> str:
     """
     创建 JWT 令牌
 
@@ -18,6 +23,7 @@ def create_jwt_token(user_id: str, is_admin: bool, expire_days: int) -> str:
         user_id: 用户 ID
         is_admin: 是否为管理员
         expire_days: 过期天数
+        user_group: 用户组
 
     Returns:
         str: JWT 令牌
@@ -25,6 +31,7 @@ def create_jwt_token(user_id: str, is_admin: bool, expire_days: int) -> str:
     payload = {
         "sub": user_id,
         "is_admin": is_admin,
+        "user_group": user_group,
         "exp": datetime.now(timezone.utc) + timedelta(days=expire_days),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)

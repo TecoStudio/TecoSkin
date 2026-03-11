@@ -50,6 +50,7 @@ class User:
     banned_until: int
     preferredLanguage: str
     avatar_hash: str
+    user_group: str | None
 
     def __init__(
         self,
@@ -61,6 +62,7 @@ class User:
         display_name: str = "",
         banned_until: int = None,
         avatar_hash: str = None,
+        user_group: str | None = None,
     ):
         self.id = id
         self.email = email
@@ -70,6 +72,7 @@ class User:
         self.display_name = display_name
         self.banned_until = banned_until
         self.avatar_hash = avatar_hash
+        self.user_group = user_group
 
     def to_json(self) -> dict:
         return {

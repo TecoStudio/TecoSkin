@@ -30,9 +30,12 @@
         <el-table-column prop="email" label="邮箱" min-width="220" />
         <el-table-column label="身份状态" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.is_admin" type="danger" effect="light" size="small">管理员</el-tag>
-            <el-tag v-else-if="getUserBanStatus(row)" type="warning" effect="light" size="small">已封禁</el-tag>
-            <el-tag v-else type="success" effect="light" size="small">正常</el-tag>
+            <el-tag
+              :type="getUserGroupInfo(row).tagType"
+              effect="light"
+              size="small"
+            >{{ getUserGroupInfo(row).title }}</el-tag>
+            <el-tag v-if="getUserBanStatus(row)" type="warning" effect="light" size="small" class="ml-2">已封禁</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="角色数" width="100" align="center">
@@ -73,7 +76,9 @@
           <div class="panel-info">
             <div class="panel-name">
               <h3>{{ currentUser.display_name || '未设置显示名' }}</h3>
-              <el-tag v-if="currentUser.is_admin" type="danger" size="small" class="ml-2">管理员</el-tag>
+              <el-tag :type="getUserGroupInfo(currentUser).tagType" size="small" class="ml-2">
+                {{ getUserGroupInfo(currentUser).title }}
+              </el-tag>
             </div>
             <div class="panel-email">{{ currentUser.email }}</div>
             <div class="panel-id">UID: {{ currentUser.id }}</div>
@@ -109,17 +114,27 @@
             <div class="actions-grid">
               <div class="action-card-item">
                 <div class="action-text-box">
-                  <div class="a-title">管理权限</div>
-                  <div class="a-desc">授予或撤销该用户的管理员权限。</div>
+                  <div class="a-title">用户组</div>
+                  <div class="a-desc">可设置为用户、老师，超级管理员可额外设置为管理员。</div>
                 </div>
-                <el-button 
-                  :type="currentUser.is_admin ? 'warning' : 'primary'" 
-                  @click="toggleAdmin(currentUser)"
-                  :disabled="isCurrentUserSelf(currentUser)"
-                  class="hover-lift"
-                >
-                  {{ currentUser.is_admin ? '撤销管理' : '设为管理' }}
-                </el-button>
+                <div class="group-editor">
+                  <el-select v-model="pendingUserGroup" size="small" style="width: 140px">
+                    <el-option
+                      v-for="item in userGroupOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                      :disabled="!canAssignGroup(item.value)"
+                    />
+                  </el-select>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="setUserGroup(currentUser)"
+                    :disabled="isCurrentUserSelf(currentUser) || pendingUserGroup === getUserGroupKey(currentUser)"
+                    class="hover-lift"
+                  >保存</el-button>
+                </div>
               </div>
 
               <div class="action-card-item">
@@ -131,7 +146,7 @@
                   v-if="!getUserBanStatus(currentUser)" 
                   type="warning" 
                   @click="showBanDialog"
-                  :disabled="currentUser.is_admin || isCurrentUserSelf(currentUser)"
+                  :disabled="getUserGroupKey(currentUser) === 'super_admin' || isCurrentUserSelf(currentUser)"
                   class="hover-lift"
                 >
                   执行封禁
@@ -159,7 +174,7 @@
                 <el-button 
                   type="danger" 
                   @click="deleteUser(currentUser)"
-                  :disabled="currentUser.is_admin || isCurrentUserSelf(currentUser)"
+                  :disabled="getUserGroupKey(currentUser) === 'super_admin' || isCurrentUserSelf(currentUser)"
                   class="hover-lift"
                 >
                   删除用户
@@ -241,6 +256,13 @@ const banDurationType = ref('preset')
 const banPresetDuration = ref(24)
 const banCustomHours = ref(24)
 const banning = ref(false)
+const pendingUserGroup = ref('user')
+
+const userGroupOptions = [
+  { label: '用户', value: 'user' },
+  { label: '老师', value: 'teacher' },
+  { label: '管理员', value: 'admin' },
+]
 
 const presetDurations = [
   { label: '1小时', value: 1 }, { label: '1天', value: 24 }, 
@@ -265,19 +287,56 @@ async function showUserDetailDialog(user) {
   try {
     const res = await axios.get(`/admin/users/${user.id}`, { headers: authHeaders() })
     currentUser.value = res.data
+    pendingUserGroup.value = getUserGroupKey(res.data)
     userDetailDialogVisible.value = true
   } catch (e) {
     ElMessage.error('无法加载用户详情')
   }
 }
 
-async function toggleAdmin(user) {
+function getUserGroupKey(user) {
+  return user?.user_group || (user?.is_admin ? 'admin' : 'user')
+}
+
+function getUserGroupInfo(user) {
+  const key = getUserGroupKey(user)
+  const map = {
+    super_admin: { title: '超级管理员', tagType: 'danger' },
+    admin: { title: '管理员', tagType: 'primary' },
+    user: { title: '用户', tagType: 'success' },
+    teacher: { title: '老师', tagType: 'info' },
+  }
+  return map[key] || map.user
+}
+
+function getActorGroup() {
   try {
-    await ElMessageBox.confirm(`确定要切换 ${user.email} 的管理员状态吗？`, '确认', { type: 'warning' })
-    await axios.post(`/admin/users/${user.id}/toggle-admin`, {}, { headers: authHeaders() })
+    const token = localStorage.getItem('jwt')
+    if (!token) return 'user'
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.user_group) return payload.user_group
+    return payload.is_admin ? 'admin' : 'user'
+  } catch (e) {
+    return 'user'
+  }
+}
+
+function canAssignGroup(group) {
+  const actorGroup = getActorGroup()
+  if (group === 'admin') return actorGroup === 'super_admin'
+  return group !== 'super_admin'
+}
+
+async function setUserGroup(user) {
+  try {
+    await ElMessageBox.confirm(`确定将 ${user.email} 设置为 ${getUserGroupInfo({ user_group: pendingUserGroup.value }).title} 吗？`, '确认', { type: 'warning' })
+    await axios.post(`/admin/users/${user.id}/set-group`, { user_group: pendingUserGroup.value }, { headers: authHeaders() })
     ElMessage.success('操作成功')
-    refreshUsers()
-    if (currentUser.value) currentUser.value.is_admin = !currentUser.value.is_admin
+    await refreshUsers()
+    if (currentUser.value) {
+      currentUser.value.user_group = pendingUserGroup.value
+      currentUser.value.is_admin = pendingUserGroup.value === 'super_admin' || pendingUserGroup.value === 'admin'
+    }
   } catch (e) {}
 }
 
@@ -405,6 +464,7 @@ onMounted(refreshUsers)
 .action-text-box { flex: 1; margin-right: 12px; }
 .a-title { font-weight: 600; font-size: 14px; color: var(--color-heading); }
 .a-desc { font-size: 12px; color: var(--color-text-light); margin-top: 2px; }
+.group-editor { display: flex; gap: 8px; align-items: center; }
 
 .ban-preview { font-size: 13px; color: var(--color-text-light); padding: 10px; background: var(--color-background-mute); border-radius: 6px; }
 .ban-preview span { font-weight: bold; color: var(--el-color-primary); }

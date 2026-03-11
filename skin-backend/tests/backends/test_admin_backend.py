@@ -34,6 +34,7 @@ async def test_admin_user_controls(db_session, test_config, user_factory):
     """测试管理员对用户的管控逻辑：列表、封禁、删除、权限切换"""
     backend = AdminBackend(db_session, test_config)
     admin = await user_factory(is_admin=True, username="AdminUser")
+    await db_session.user.set_user_group(admin.id, "super_admin")
     user = await user_factory(is_admin=False, username="NormalUser")
     
     # 1. 获取用户列表
@@ -49,6 +50,7 @@ async def test_admin_user_controls(db_session, test_config, user_factory):
     # 3. 切换管理员状态
     await backend.toggle_user_admin(user.id, admin.id)
     assert (await db_session.user.get_by_id(user.id)).is_admin == 1
+    assert (await db_session.user.get_by_id(user.id)).user_group == "admin"
 
     # 禁止取消自己的管理员
     with pytest.raises(HTTPException) as exc:
@@ -58,9 +60,21 @@ async def test_admin_user_controls(db_session, test_config, user_factory):
     # 4. 降级并删除用户
     await backend.toggle_user_admin(user.id, admin.id) # 降级回普通用户
     assert (await db_session.user.get_by_id(user.id)).is_admin == 0
+    assert (await db_session.user.get_by_id(user.id)).user_group == "user"
 
     await backend.delete_user(user.id, is_admin_action=True)
     assert await db_session.user.get_by_id(user.id) is None
+
+
+@pytest.mark.asyncio
+async def test_only_super_admin_can_assign_admin(db_session, test_config, user_factory):
+    backend = AdminBackend(db_session, test_config)
+    admin_actor = await user_factory(is_admin=True, username="AdminActor")
+    normal_user = await user_factory(is_admin=False, username="NormalUser")
+
+    with pytest.raises(HTTPException) as exc:
+        await backend.set_user_group(normal_user.id, admin_actor.id, "admin")
+    assert exc.value.status_code == 403
 
 
 

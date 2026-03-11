@@ -15,6 +15,7 @@ async def test_first_user_is_admin(site_backend_fixture, db_session):
     
     user1 = await site_backend_fixture.get_user_info(uid1)
     assert user1["is_admin"] is True
+    assert user1["user_group"] == "super_admin"
     
     # 2. 注册第二个用户
     uid2 = await site_backend_fixture.register(
@@ -25,6 +26,7 @@ async def test_first_user_is_admin(site_backend_fixture, db_session):
     
     user2 = await site_backend_fixture.get_user_info(uid2)
     assert user2["is_admin"] is False
+    assert user2["user_group"] == "user"
 
 @pytest.mark.asyncio
 async def test_duplicate_email_registration(site_backend_fixture, user_factory):

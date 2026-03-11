@@ -6,6 +6,7 @@ import os
 import uuid
 
 from utils.jwt_utils import decode_jwt_token
+from utils.user_groups import is_admin_group, normalize_user_group
 from database_module import Database
 from config_loader import Config
 
@@ -24,7 +25,12 @@ def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, confi
         return payload
 
     def admin_required(payload: dict = Depends(get_current_user)):
-        if not payload.get("is_admin"):
+        payload_group = payload.get("user_group")
+        if payload_group:
+            allowed = is_admin_group(payload_group)
+        else:
+            allowed = bool(payload.get("is_admin"))
+        if not allowed:
             raise HTTPException(status_code=403, detail="admin required")
         return payload
 
@@ -115,6 +121,13 @@ def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, confi
         actor_id = payload.get("sub")
         await admin_backend.toggle_user_admin(user_id, actor_id)
         return {"ok": True}
+
+    @router.post("/admin/users/{user_id}/set-group")
+    async def set_user_group(user_id: str, payload: dict = Depends(admin_required), body: dict = Body(...)):
+        actor_id = payload.get("sub")
+        user_group = normalize_user_group(body.get("user_group"))
+        await admin_backend.set_user_group(user_id, actor_id, user_group)
+        return {"ok": True, "user_group": user_group}
 
     @router.delete("/admin/users/{user_id}")
     async def delete_user_admin(user_id: str, payload: dict = Depends(admin_required)):

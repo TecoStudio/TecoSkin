@@ -1,5 +1,6 @@
 from ..core import BaseDB
 from utils.typing import User, PlayerProfile, InviteCode, Token, Session, Texture
+from utils.user_groups import resolve_user_group, is_admin_group, normalize_user_group
 import time
 import uuid
 import re
@@ -12,7 +13,7 @@ class UserModule:
     async def get_by_email(self, email: str) -> User | None:
         async with self.db.get_conn() as conn:
             async with conn.execute(
-                "SELECT id, email, password, is_admin, preferred_language, display_name, banned_until, avatar_hash FROM users WHERE email=?",
+                "SELECT id, email, password, is_admin, preferred_language, display_name, banned_until, avatar_hash, user_group FROM users WHERE email=?",
                 (email,),
             ) as cur:
                 usr = await cur.fetchone()
@@ -23,7 +24,7 @@ class UserModule:
     async def get_by_id(self, user_id: str) -> User | None:
         async with self.db.get_conn() as conn:
             async with conn.execute(
-                "SELECT id, email, password, is_admin, preferred_language, display_name, banned_until, avatar_hash FROM users WHERE id=?",
+                "SELECT id, email, password, is_admin, preferred_language, display_name, banned_until, avatar_hash, user_group FROM users WHERE id=?",
                 (user_id,),
             ) as cur:
                 usr = await cur.fetchone()
@@ -34,8 +35,15 @@ class UserModule:
     async def create(self, user: User):
         async with self.db.get_conn() as conn:
             await conn.execute(
-                "INSERT INTO users (id, email, password, is_admin, display_name) VALUES (?, ?, ?, ?, ?)",
-                (user.id, user.email, user.password, user.is_admin, user.display_name),
+                "INSERT INTO users (id, email, password, is_admin, display_name, user_group) VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    user.id,
+                    user.email,
+                    user.password,
+                    user.is_admin,
+                    user.display_name,
+                    resolve_user_group(getattr(user, "user_group", None), user.is_admin),
+                ),
             )
             await conn.commit()
 
@@ -102,29 +110,41 @@ class UserModule:
     async def list_users(self, limit: int = 20, offset: int = 0) -> list[User]:
         async with self.db.get_conn() as conn:
             async with conn.execute(
-                "SELECT id, email, display_name, is_admin, banned_until, preferred_language, avatar_hash FROM users ORDER BY email LIMIT ? OFFSET ?",
+                "SELECT id, email, display_name, is_admin, banned_until, preferred_language, avatar_hash, user_group FROM users ORDER BY email LIMIT ? OFFSET ?",
                 (limit, offset),
             ) as cur:
                 rows = await cur.fetchall()
-                # SELECT Order: id(0), email(1), display_name(2), is_admin(3), banned_until(4), preferred_language(5), avatar_hash(6)
-                # User Init: id, email, password, is_admin, preferred_language, display_name, banned_until, avatar_hash
-                return [User(r[0], r[1], "", r[3], r[5], r[2], r[4], r[6]) for r in rows]
+                return [User(r[0], r[1], "", r[3], r[5], r[2], r[4], r[6], r[7]) for r in rows]
 
     async def toggle_admin(self, user_id: str) -> int:
         async with self.db.get_conn() as conn:
             async with conn.execute(
-                "SELECT is_admin FROM users WHERE id=?", (user_id,)
+                "SELECT user_group, is_admin FROM users WHERE id=?", (user_id,)
             ) as cur:
                 row = await cur.fetchone()
                 if not row:
                     return -1
-                new_status = 0 if row[0] else 1
+                current_group = resolve_user_group(row[0], row[1])
+                next_group = "user" if is_admin_group(current_group) else "admin"
+                new_status = 1 if is_admin_group(next_group) else 0
 
             await conn.execute(
-                "UPDATE users SET is_admin=? WHERE id=?", (new_status, user_id)
+                "UPDATE users SET is_admin=?, user_group=? WHERE id=?",
+                (new_status, next_group, user_id),
             )
             await conn.commit()
             return new_status
+
+    async def set_user_group(self, user_id: str, user_group: str) -> bool:
+        normalized_group = normalize_user_group(user_group)
+        admin_flag = 1 if is_admin_group(normalized_group) else 0
+        async with self.db.get_conn() as conn:
+            cursor = await conn.execute(
+                "UPDATE users SET user_group=?, is_admin=? WHERE id=?",
+                (normalized_group, admin_flag, user_id),
+            )
+            await conn.commit()
+            return cursor.rowcount > 0
             
     async def ban(self, user_id: str, banned_until: int):
         async with self.db.get_conn() as conn:

@@ -52,7 +52,7 @@
                 <el-avatar :size="48" :src="avatarUrl" shape="square" class="account-avatar" />
                 <div class="account-meta">
                   <h4>{{ accountName }}</h4>
-                  <p>{{ isAdmin ? '管理员' : '普通用户' }}</p>
+                  <p>{{ userGroupTitle }}</p>
                 </div>
               </div>
               <div class="account-actions">
@@ -248,7 +248,17 @@ function parseJwt(token) {
 }
 
 const isLogged = computed(() => !!jwtToken.value)
-const isAdmin = computed(() => user.value?.is_admin || false)
+const userGroup = computed(() => user.value?.user_group || (user.value?.is_admin ? 'admin' : 'user'))
+const isAdmin = computed(() => ['super_admin', 'admin'].includes(userGroup.value))
+const userGroupTitle = computed(() => {
+  const map = {
+    super_admin: '超级管理员',
+    admin: '管理员',
+    user: '用户',
+    teacher: '老师',
+  }
+  return map[userGroup.value] || '用户'
+})
 const accountName = computed(() => user.value?.display_name || user.value?.email || '用户')
 const avatarUrl = computed(() => user.value?.avatar_url || '')
 

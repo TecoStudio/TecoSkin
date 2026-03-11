@@ -173,3 +173,54 @@ async def test_oauth_authorize_and_token_exchange(client, admin_headers, auth_he
     assert skin_resp.headers.get("x-vskin-profile-id") == profile_id
     assert skin_resp.headers.get("x-vskin-skin-hash") == skin_hash
     assert skin_resp.content
+
+
+@pytest.mark.asyncio
+async def test_oauth_permissions_endpoint(client, admin_headers, auth_headers):
+    admin_h = {"Authorization": admin_headers["Authorization"]}
+    user_h = {"Authorization": auth_headers["Authorization"]}
+
+    create_resp = await client.post(
+        "/admin/oauth/apps",
+        json={
+            "client_name": "Perm App",
+            "redirect_uri": "https://ext.example.com/perm-callback",
+        },
+        headers=admin_h,
+    )
+    app = create_resp.json()
+
+    decision_resp = await client.post(
+        "/oauth/authorize/decision",
+        json={
+            "client_id": app["app_id"],
+            "redirect_uri": app["redirect_uri"],
+            "state": "sperm",
+            "scope": "permission",
+            "approved": True,
+        },
+        headers=user_h,
+    )
+    redirect_url = decision_resp.json()["redirect_url"]
+    code = parse_qs(urlparse(redirect_url).query)["code"][0]
+
+    token_resp = await client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": str(app["app_id"]),
+            "client_secret": app["client_secret"],
+            "redirect_uri": app["redirect_uri"],
+        },
+    )
+    token_data = token_resp.json()
+
+    perm_resp = await client.get(
+        "/oauth/permissions",
+        headers={"Authorization": f"Bearer {token_data['access_token']}"},
+    )
+    assert perm_resp.status_code == 200
+    payload = perm_resp.json()
+    assert payload.get("user_group") in {"user", "teacher", "admin", "super_admin"}
+    assert payload.get("user_group_meta", {}).get("title")
