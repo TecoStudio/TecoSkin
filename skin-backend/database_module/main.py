@@ -501,6 +501,9 @@ class Database(BaseDB):
                 "INSERT OR IGNORE INTO settings (key, value) VALUES ('home_image_urls', '')"
             )
             await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('register_email_suffixes', '')"
+            )
+            await conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES ('oauth_device_shared_client_id', '')"
             )
             await conn.execute(

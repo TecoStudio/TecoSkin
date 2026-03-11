@@ -45,6 +45,21 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="注册邮箱域名后缀限制">
+              <el-select
+                v-model="settings.site.register_email_suffixes"
+                multiple
+                filterable
+                allow-create
+                default-first-option
+                placeholder="例如：example.com、edu.cn"
+              />
+              <p class="hint-text">留空表示不限制。支持直接输入并回车新增后缀，系统会匹配 @example.com 或 @xxx.example.com。</p>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="最大纹理大小 (KB)">
           <el-input-number v-model="settings.site.max_texture_size" :min="64" :step="128" />
         </el-form-item>
@@ -263,6 +278,7 @@ const settings = reactive({
     home_image_urls: '',
     require_invite: false,
     allow_register: true,
+    register_email_suffixes: [],
     enable_skin_library: true,
     max_texture_size: 1024,
     footer_text: '',

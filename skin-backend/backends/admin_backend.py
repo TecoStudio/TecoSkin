@@ -34,6 +34,15 @@ class AdminBackend:
 
     async def get_site_settings(self):
         s = await self.db.setting.get_all()
+        raw_suffixes = s.get("register_email_suffixes", "")
+        if isinstance(raw_suffixes, list):
+            register_email_suffixes = [str(item).strip() for item in raw_suffixes if str(item).strip()]
+        else:
+            register_email_suffixes = [
+                item.strip()
+                for item in str(raw_suffixes or "").replace("\n", ",").split(",")
+                if item.strip()
+            ]
         return {
             "site_name": s.get("site_name", "皮肤站"),
             "site_title": s.get("site_title", s.get("site_name", "皮肤站")),
@@ -42,6 +51,7 @@ class AdminBackend:
             "home_image_urls": s.get("home_image_urls", ""),
             "require_invite": s.get("require_invite", "false") == "true",
             "allow_register": s.get("allow_register", "true") == "true",
+            "register_email_suffixes": register_email_suffixes,
             "enable_skin_library": s.get("enable_skin_library", "true") == "true",
             "max_texture_size": int(s.get("max_texture_size", "1024")),
             "footer_text": s.get("footer_text", ""),
@@ -103,6 +113,7 @@ class AdminBackend:
                 "home_image_urls",
                 "require_invite",
                 "allow_register",
+                "register_email_suffixes",
                 "enable_skin_library",
                 "max_texture_size",
                 "footer_text",
@@ -146,6 +157,17 @@ class AdminBackend:
                             for line in str(val or "").splitlines()
                             if line.strip()
                         )
+
+                if key == "register_email_suffixes":
+                    if isinstance(val, list):
+                        parts = [str(item).strip() for item in val if str(item).strip()]
+                    else:
+                        parts = [
+                            item.strip()
+                            for item in str(val or "").replace("\n", ",").split(",")
+                            if item.strip()
+                        ]
+                    val = ",".join(parts)
                 
                 value = "true" if isinstance(val, bool) and val else ("false" if isinstance(val, bool) else str(val))
                 await self.db.setting.set(key, value)

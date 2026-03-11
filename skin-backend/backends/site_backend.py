@@ -61,6 +61,38 @@ class SiteBackend:
     def build_avatar_url(self, avatar_hash: str | None) -> str:
         return self._avatar_url_from_hash(avatar_hash)
 
+    def _normalize_register_email_suffixes(self, raw_value) -> list[str]:
+        if isinstance(raw_value, list):
+            parts = raw_value
+        else:
+            parts = str(raw_value or "").replace("\n", ",").split(",")
+        normalized = []
+        for item in parts:
+            token = str(item).strip().lower()
+            if not token:
+                continue
+            token = token.lstrip("@")
+            if token.startswith("."):
+                token = token[1:]
+            if token:
+                normalized.append(token)
+        return list(dict.fromkeys(normalized))
+
+    async def _is_register_email_allowed(self, email: str) -> bool:
+        raw_suffixes = await self.db.setting.get("register_email_suffixes", "")
+        suffixes = self._normalize_register_email_suffixes(raw_suffixes)
+        if not suffixes:
+            return True
+        if "@" not in email:
+            return False
+        domain = email.split("@", 1)[1].strip().lower()
+        if not domain:
+            return False
+        for suffix in suffixes:
+            if domain == suffix or domain.endswith("." + suffix):
+                return True
+        return False
+
     # ========== Auth & User ==========
 
     async def send_verification_code(self, email: str, type: str):
@@ -81,6 +113,8 @@ class SiteBackend:
 
         # For register, check if user exists
         if type == "register":
+            if not await self._is_register_email_allowed(email):
+                raise HTTPException(status_code=400, detail="Email domain is not allowed")
             user = await self.db.user.get_by_email(email)
             if user:
                 raise HTTPException(status_code=400, detail="Email already registered")
@@ -158,6 +192,9 @@ class SiteBackend:
         allow_register = await self.db.setting.get("allow_register", "true")
         if allow_register != "true":
             raise HTTPException(status_code=403, detail="registration is disabled")
+
+        if not await self._is_register_email_allowed(email):
+            raise HTTPException(status_code=400, detail="Email domain is not allowed")
 
         # Email Verification Check
         email_verify_enabled = await self.db.setting.get("email_verify_enabled", "false") == "true"
