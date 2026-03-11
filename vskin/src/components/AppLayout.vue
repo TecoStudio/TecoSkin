@@ -461,8 +461,16 @@ html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
 }
 
 .logo {
-  font-weight: 900;
+  font-weight: 950;
   font-size: 20px;
+  font-family:
+    'Microsoft YaHei',
+    'Microsoft YaHei UI',
+    'HarmonyOS Sans SC',
+    'PingFang SC',
+    'Segoe UI Variable',
+    'Segoe UI',
+    sans-serif;
   color: #1f2a36;
   cursor: pointer;
   border-radius: 8px;
@@ -480,6 +488,11 @@ html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
   height: 22px;
   object-fit: contain;
   flex-shrink: 0;
+}
+
+.logo span {
+  font-weight: 950;
+  letter-spacing: 0.01em;
 }
 
 .logo:hover {

@@ -119,7 +119,13 @@ function getCarouselUrl(filename) {
 
 /* FIXED Background logic - Using 100% instead of 100vw to avoid scrollbar calculation issues */
 .hero-bg-fixed {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  bottom: 0;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: 0;
 }
 .hero-bg-fixed.is-gradient {
   background: radial-gradient(circle at 0% 0%, #d6e6f5 0%, #ecedf2 42%, #f8f8fb 100%);
@@ -152,7 +158,7 @@ function getCarouselUrl(filename) {
   max-width: 860px;
   border: 1px solid rgba(212, 224, 239, 0.92);
   border-radius: 26px;
-  background: rgba(246, 250, 255, 0.75);
+  background: rgba(246, 250, 255, 0.64);
   backdrop-filter: blur(10px);
   padding: 40px 44px;
   box-shadow: 0 22px 40px rgba(44, 71, 99, 0.18);
