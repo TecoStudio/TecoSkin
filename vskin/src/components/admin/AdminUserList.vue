@@ -20,7 +20,9 @@
         <el-table-column prop="display_name" label="用户名" min-width="150">
           <template #default="{ row }">
             <div class="user-cell">
-              <el-avatar :size="32" class="mr-2">{{ row.display_name?.charAt(0).toUpperCase() || row.email.charAt(0).toUpperCase() }}</el-avatar>
+              <el-avatar :size="32" :src="row.avatar_url" shape="square" class="mr-2 user-avatar">
+                {{ row.display_name?.charAt(0).toUpperCase() || row.email.charAt(0).toUpperCase() }}
+              </el-avatar>
               <span>{{ row.display_name || '未设置' }}</span>
             </div>
           </template>
@@ -65,7 +67,7 @@
       <div v-if="currentUser" class="user-detail-container">
         <!-- User Identity Panel -->
         <div class="identity-panel mb-6">
-          <el-avatar :size="80" class="panel-avatar">
+          <el-avatar :size="80" :src="currentUser.avatar_url" shape="square" class="panel-avatar">
             {{ currentUser.email.charAt(0).toUpperCase() }}
           </el-avatar>
           <div class="panel-info">
@@ -383,11 +385,12 @@ onMounted(refreshUsers)
 .users-section { max-width: 1000px; margin: 0 auto; padding: 20px 0; }
 
 .user-cell { display: flex; align-items: center; }
+.user-avatar { border-radius: 8px; flex-shrink: 0; }
 
 /* Dialog Styles */
 .user-detail-container { padding: 24px; }
 .identity-panel { display: flex; align-items: center; gap: 24px; padding: 20px; background: var(--color-background-soft); border-radius: 12px; }
-.panel-avatar { background: var(--el-color-primary-light-3); color: white; font-weight: bold; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.panel-avatar { background: var(--color-background-soft); color: white; font-weight: bold; border-radius: 10px; border: 1px solid var(--color-border); box-shadow: none; }
 .panel-info { flex: 1; }
 .panel-name { display: flex; align-items: center; gap: 8px; }
 .panel-name h3 { margin: 0; font-size: 20px; color: var(--color-heading); }

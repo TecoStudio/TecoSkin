@@ -235,7 +235,7 @@ const activeRoute = computed(() => route.path)
 const showFooter = computed(() => !isAuthPage.value)
 const repoUrl = 'https://github.com/LYOfficial/vSkin'
 // REPAIRED: Correct version number display
-const repoLabel = `vSkin ${typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.3.0'}`
+const repoLabel = 'vSkin v0.1.0'
 
 function parseJwt(token) {
   if (!token) return null
@@ -444,7 +444,7 @@ html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
 }
 
 .logo {
-  font-weight: 800;
+  font-weight: 900;
   font-size: 20px;
   color: #1f2a36;
   cursor: pointer;
@@ -454,6 +454,8 @@ html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .site-logo-image {
@@ -477,7 +479,7 @@ html.dark .logo:hover {
   background: #28313b;
 }
 
-.desktop-nav { flex-grow: 1; display: flex; justify-content: center; height: 100%; }
+.desktop-nav { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; height: 100%; overflow: hidden; }
 .desktop-nav .el-menu { border-bottom: none; height: 100%; background: transparent; }
 
 .desktop-nav :deep(.el-menu-item) {
@@ -503,7 +505,7 @@ html.dark .desktop-nav :deep(.el-menu-item.is-active) {
   color: #eaf4ff;
 }
 
-.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .theme-toggle { font-size: 20px; border-radius: 8px; }
 .mobile-nav { display: none; }
 
@@ -534,6 +536,11 @@ html.dark .account-trigger:hover {
   background: #27313c;
 }
 
-@media (max-width: 1200px) { .nav-priority-5, .nav-priority-6 { display: none !important; } .mobile-nav { display: block; } }
+@media (max-width: 1380px) { .nav-priority-6 { display: none !important; } .mobile-nav { display: block; } }
+@media (max-width: 1260px) { .nav-priority-5 { display: none !important; } }
+@media (max-width: 1140px) { .nav-priority-4 { display: none !important; } }
+@media (max-width: 1040px) { .nav-priority-3 { display: none !important; } }
+@media (max-width: 940px) { .nav-priority-2 { display: none !important; } }
+@media (max-width: 860px) { .nav-priority-1 { display: none !important; } }
 @media (max-width: 768px) { .desktop-nav { display: none; } }
 </style>

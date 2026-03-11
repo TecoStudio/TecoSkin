@@ -14,6 +14,11 @@ class AdminBackend:
         self.db = db
         self.config = config
 
+    def _avatar_url_from_hash(self, avatar_hash: str | None) -> str:
+        if avatar_hash:
+            return f"/static/textures/{avatar_hash}.png"
+        return "/public/default-avatar"
+
     # ========== Settings Management (Granular) ==========
 
     async def get_site_settings(self):
@@ -203,6 +208,7 @@ class AdminBackend:
                 "id": row.id,
                 "email": row.email,
                 "display_name": row.display_name or "",
+                "avatar_url": self._avatar_url_from_hash(row.avatar_hash),
                 "is_admin": bool(row.is_admin),
                 "banned_until": row.banned_until,
                 "profile_count": profile_count,
@@ -231,6 +237,7 @@ class AdminBackend:
             "email": user_row.email,
             "lang": user_row.preferredLanguage,
             "display_name": user_row.display_name,
+            "avatar_url": self._avatar_url_from_hash(user_row.avatar_hash),
             "is_admin": bool(user_row.is_admin),
             "banned_until": user_row.banned_until,
             "profiles": profiles_list,
