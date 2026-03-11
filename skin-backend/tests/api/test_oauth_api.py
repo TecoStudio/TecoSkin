@@ -3,6 +3,7 @@ from urllib.parse import urlparse, parse_qs
 from io import BytesIO
 
 from PIL import Image
+import jwt
 
 
 @pytest.mark.asyncio
@@ -224,3 +225,142 @@ async def test_oauth_permissions_endpoint(client, admin_headers, auth_headers):
     payload = perm_resp.json()
     assert payload.get("user_group") in {"user", "teacher", "admin", "super_admin"}
     assert payload.get("user_group_meta", {}).get("title")
+
+
+@pytest.mark.asyncio
+async def test_oauth_device_flow_and_openid_metadata(client, admin_headers, auth_headers, test_config, crypto_fixture):
+    admin_h = {"Authorization": admin_headers["Authorization"]}
+    user_h = {"Authorization": auth_headers["Authorization"]}
+
+    create_profile_resp = await client.post(
+        "/me/profiles",
+        json={"name": "DeviceFlowPlayer", "model": "slim"},
+        headers=user_h,
+    )
+    assert create_profile_resp.status_code == 200
+
+    skin_file = BytesIO()
+    Image.new("RGBA", size=(64, 64), color=(220, 140, 40, 255)).save(skin_file, "png")
+    skin_file.seek(0)
+    upload_resp = await client.post(
+        "/me/textures",
+        data={"texture_type": "skin", "note": "Device Flow Skin", "is_public": "false", "model": "slim"},
+        files={"file": ("device-flow-skin.png", skin_file, "image/png")},
+        headers=user_h,
+    )
+    assert upload_resp.status_code == 200
+    skin_hash = upload_resp.json()["hash"]
+
+    apply_resp = await client.post(
+        f"/me/textures/{skin_hash}/apply",
+        json={"profile_id": create_profile_resp.json()["id"], "texture_type": "skin"},
+        headers=user_h,
+    )
+    assert apply_resp.status_code == 200
+
+    create_resp = await client.post(
+        "/admin/oauth/apps",
+        json={
+            "client_name": "USTBL",
+            "redirect_uri": "https://skin.ustb.world/launcher-placeholder",
+        },
+        headers=admin_h,
+    )
+    assert create_resp.status_code == 200
+    app = create_resp.json()
+
+    test_config._data.setdefault("oauth", {}).setdefault("device", {})["shared_client_id"] = str(app["app_id"])
+
+    openid_resp = await client.get("/.well-known/openid-configuration")
+    assert openid_resp.status_code == 200
+    openid_data = openid_resp.json()
+    assert openid_data["device_authorization_endpoint"].endswith("/oauth/device/code")
+    assert openid_data["token_endpoint"].endswith("/oauth/token")
+    assert openid_data["jwks_uri"].endswith("/oauth/jwks")
+    assert openid_data["shared_client_id"] == str(app["app_id"])
+
+    metadata_resp = await client.get("/")
+    assert metadata_resp.status_code == 200
+    assert metadata_resp.json()["meta"]["feature.openid_configuration_url"].endswith("/.well-known/openid-configuration")
+
+    device_code_resp = await client.post(
+        "/oauth/device/code",
+        data={
+            "client_id": str(app["app_id"]),
+            "scope": "openid offline_access Yggdrasil.PlayerProfiles.Select Yggdrasil.Server.Join",
+        },
+    )
+    assert device_code_resp.status_code == 200
+    device_data = device_code_resp.json()
+    assert device_data["verification_uri"].endswith("/device")
+    assert device_data["verification_uri_complete"].endswith(device_data["user_code"])
+
+    preview_resp = await client.get(
+        "/oauth/device/authorize/check",
+        params={"user_code": device_data["user_code"]},
+    )
+    assert preview_resp.status_code == 200
+    assert preview_resp.json()["status"] == "pending"
+
+    pending_token_resp = await client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "client_id": str(app["app_id"]),
+            "device_code": device_data["device_code"],
+        },
+    )
+    assert pending_token_resp.status_code == 400
+    assert pending_token_resp.json()["error"] == "authorization_pending"
+
+    approve_resp = await client.post(
+        "/oauth/device/authorize/decision",
+        json={
+            "user_code": device_data["user_code"],
+            "approved": True,
+        },
+        headers=user_h,
+    )
+    assert approve_resp.status_code == 200
+    assert approve_resp.json()["status"] == "approved"
+
+    token_resp = await client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "client_id": str(app["app_id"]),
+            "device_code": device_data["device_code"],
+        },
+    )
+    assert token_resp.status_code == 200
+    token_data = token_resp.json()
+    assert token_data["token_type"] == "Bearer"
+    assert token_data.get("id_token")
+    assert token_data.get("refresh_token")
+
+    claims = jwt.decode(
+        token_data["id_token"],
+        crypto_fixture.private_key.public_key(),
+        algorithms=["RS256"],
+        audience=str(app["app_id"]),
+    )
+    assert claims["sub"] == auth_headers["X-User-ID"]
+    assert claims["selectedProfile"]["name"] == "DeviceFlowPlayer"
+    assert claims["selectedProfile"]["properties"][0]["name"] == "textures"
+
+    jwks_resp = await client.get("/oauth/jwks")
+    assert jwks_resp.status_code == 200
+    assert jwks_resp.json()["keys"][0]["alg"] == "RS256"
+
+    refresh_resp = await client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "client_id": str(app["app_id"]),
+            "refresh_token": token_data["refresh_token"],
+        },
+    )
+    assert refresh_resp.status_code == 200
+    refreshed = refresh_resp.json()
+    assert refreshed["access_token"] != token_data["access_token"]
+    assert refreshed.get("id_token")

@@ -11,7 +11,7 @@ from database_module import Database
 from backends.yggdrasil_backend import YggdrasilBackend, YggdrasilError
 from backends.site_backend import SiteBackend
 from backends.admin_backend import AdminBackend
-from backends.oauth_backend import OAuthBackend
+from backends.oauth_backend import OAuthBackend, OAuthProtocolError
 from utils.crypto import CryptoUtils
 from utils.rate_limiter import RateLimiter
 from utils.cached_static import CachedStaticFiles
@@ -46,7 +46,7 @@ rate_limiter = RateLimiter(db)  # New dependency-injected rate limiter
 ygg_backend = YggdrasilBackend(db, crypto)
 site_backend = SiteBackend(db, config)
 admin_backend = AdminBackend(db, config)
-oauth_backend = OAuthBackend(db, config)
+oauth_backend = OAuthBackend(db, config, crypto)
 
 
 @asynccontextmanager
@@ -128,6 +128,14 @@ async def ygg_exception_handler(request: Request, exc: YggdrasilError):
         status_code=exc.status_code,
         content={"error": exc.error, "errorMessage": exc.message},
     )
+
+
+@app.exception_handler(OAuthProtocolError)
+async def oauth_exception_handler(request: Request, exc: OAuthProtocolError):
+    content = {"error": exc.error}
+    if exc.description:
+        content["error_description"] = exc.description
+    return JSONResponse(status_code=exc.status_code, content=content)
 
 
 # ========== 注册路由模块 ==========

@@ -140,7 +140,7 @@ import {
 const route = useRoute()
 const { push } = useRouter()
 const isHome = computed(() => route.path === '/')
-const isAuthPage = computed(() => ['/login', '/register', '/reset-password', '/oauth/authorize'].includes(route.path))
+const isAuthPage = computed(() => ['/login', '/register', '/reset-password', '/oauth/authorize', '/device'].includes(route.path))
 const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
 const siteTitle = ref(localStorage.getItem('site_title_cache') || localStorage.getItem('site_name_cache') || '皮肤站')
 const siteLogo = ref(localStorage.getItem('site_logo_cache') || '')

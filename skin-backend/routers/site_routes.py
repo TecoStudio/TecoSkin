@@ -389,20 +389,58 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
             scope=scope,
         )
 
+    @router.get("/.well-known/openid-configuration")
+    async def openid_configuration():
+        return oauth_backend.openid_configuration()
+
+    @router.get("/oauth/jwks")
+    async def oauth_jwks():
+        return oauth_backend.jwks()
+
+    @router.post("/oauth/device/code")
+    async def oauth_device_code(
+        client_id: int = Form(...),
+        scope: str = Form(default="openid offline_access Yggdrasil.PlayerProfiles.Select Yggdrasil.Server.Join"),
+    ):
+        return await oauth_backend.create_device_authorization(client_id=client_id, scope=scope)
+
+    @router.get("/oauth/device/authorize/check")
+    async def oauth_device_authorize_check(user_code: str = Query(...)):
+        return await oauth_backend.build_device_preview(user_code)
+
+    @router.post("/oauth/device/authorize/decision")
+    async def oauth_device_authorize_decision(
+        payload: dict = Depends(get_current_user),
+        body: dict = Body(...),
+    ):
+        user_code = body.get("user_code", "")
+        approved = bool(body.get("approved", False))
+        if not user_code:
+            raise HTTPException(status_code=400, detail="user_code required")
+        return await oauth_backend.decide_device_authorization(
+            user_id=payload.get("sub"),
+            user_code=user_code,
+            approved=approved,
+        )
+
     @router.post("/oauth/token")
     async def oauth_token(
         grant_type: str = Form(...),
-        code: str = Form(...),
-        client_id: int = Form(...),
-        client_secret: str = Form(...),
-        redirect_uri: str = Form(...),
+        code: str | None = Form(default=None),
+        client_id: int | None = Form(default=None),
+        client_secret: str | None = Form(default=None),
+        redirect_uri: str | None = Form(default=None),
+        device_code: str | None = Form(default=None),
+        refresh_token: str | None = Form(default=None),
     ):
-        return await oauth_backend.exchange_code(
+        return await oauth_backend.token_endpoint(
             grant_type=grant_type,
             code=code,
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri=redirect_uri,
+            device_code=device_code,
+            refresh_token=refresh_token,
         )
 
     @router.get("/oauth/userinfo")

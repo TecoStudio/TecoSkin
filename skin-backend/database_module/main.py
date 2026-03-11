@@ -143,9 +143,29 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
     user_id TEXT NOT NULL,
     scope TEXT DEFAULT 'basic',
     expires_at INTEGER NOT NULL,
+    refresh_expires_at INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     FOREIGN KEY(app_id) REFERENCES oauth_clients(app_id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_device_codes (
+    device_code TEXT PRIMARY KEY,
+    user_code TEXT UNIQUE NOT NULL,
+    app_id INTEGER NOT NULL,
+    scope TEXT DEFAULT 'openid',
+    status TEXT NOT NULL DEFAULT 'pending',
+    user_id TEXT DEFAULT NULL,
+    expires_at INTEGER NOT NULL,
+    interval_seconds INTEGER NOT NULL DEFAULT 5,
+    last_polled_at INTEGER DEFAULT NULL,
+    next_allowed_poll_at INTEGER DEFAULT NULL,
+    approved_at INTEGER DEFAULT NULL,
+    denied_at INTEGER DEFAULT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(app_id) REFERENCES oauth_clients(app_id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 """
 
@@ -424,6 +444,19 @@ class Database(BaseDB):
             if "client_name" not in columns:
                 await conn.execute(
                     "ALTER TABLE oauth_clients ADD COLUMN client_name TEXT DEFAULT ''"
+                )
+                await conn.commit()
+
+            # 兼容旧库：oauth_tokens 增加 refresh_expires_at 列
+            cursor = await conn.execute("PRAGMA table_info(oauth_tokens)")
+            columns = [row[1] for row in await cursor.fetchall()]
+            if "refresh_expires_at" not in columns:
+                await conn.execute(
+                    "ALTER TABLE oauth_tokens ADD COLUMN refresh_expires_at INTEGER NOT NULL DEFAULT 0"
+                )
+                await conn.execute(
+                    "UPDATE oauth_tokens SET refresh_expires_at = expires_at + ? WHERE refresh_expires_at = 0",
+                    (30 * 24 * 60 * 60 * 1000,),
                 )
                 await conn.commit()
 

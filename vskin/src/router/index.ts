@@ -7,6 +7,7 @@ import ResetPassword from '../views/ResetPassword.vue'
 import UserDashboard from '../views/UserDashboard.vue'
 import SkinLibraryView from '../views/SkinLibraryView.vue'
 import OAuthAuthorizeView from '../views/OAuthAuthorizeView.vue'
+import DeviceAuthorizeView from '../views/DeviceAuthorizeView.vue'
 
 // Dashboard Components
 import DashboardWardrobe from '@/components/dashboard/DashboardWardrobe.vue'
@@ -131,6 +132,11 @@ const router = createRouter({
       path: '/oauth/authorize',
       name: 'oauth-authorize',
       component: OAuthAuthorizeView,
+    },
+    {
+      path: '/device',
+      name: 'device-authorize',
+      component: DeviceAuthorizeView,
     },
   ],
 })

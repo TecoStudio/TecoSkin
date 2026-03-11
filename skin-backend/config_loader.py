@@ -65,6 +65,16 @@ class Config:
                 "secret": "dev-secret-please-change-in-production",
                 "expire_days": 7,
             },
+            "oauth": {
+                "jwks_kid": "main",
+                "access_token_expires_in": 7200,
+                "refresh_token_expires_in": 2592000,
+                "device": {
+                    "shared_client_id": "",
+                    "expires_in": 900,
+                    "interval": 5,
+                },
+            },
             "rate_limit": {
                 "enabled": True,
                 "auth_attempts": 5,

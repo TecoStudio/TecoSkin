@@ -155,15 +155,16 @@ class OAuthModule:
         user_id: str,
         scope: str,
         expires_at: int,
+        refresh_expires_at: int,
     ):
         now = int(time.time() * 1000)
         async with self.db.get_conn() as conn:
             await conn.execute(
                 """
-                INSERT INTO oauth_tokens (access_token, refresh_token, app_id, user_id, scope, expires_at, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO oauth_tokens (access_token, refresh_token, app_id, user_id, scope, expires_at, refresh_expires_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (access_token, refresh_token, app_id, user_id, scope, expires_at, now),
+                (access_token, refresh_token, app_id, user_id, scope, expires_at, refresh_expires_at, now),
             )
             await conn.commit()
 
@@ -171,7 +172,7 @@ class OAuthModule:
         async with self.db.get_conn() as conn:
             async with conn.execute(
                 """
-                SELECT access_token, refresh_token, app_id, user_id, scope, expires_at, created_at
+                SELECT access_token, refresh_token, app_id, user_id, scope, expires_at, refresh_expires_at, created_at
                 FROM oauth_tokens
                 WHERE access_token=?
                 """,
@@ -187,5 +188,176 @@ class OAuthModule:
                     "user_id": row[3],
                     "scope": row[4],
                     "expires_at": row[5],
-                    "created_at": row[6],
+                    "refresh_expires_at": row[6],
+                    "created_at": row[7],
                 }
+
+    async def get_refresh_token(self, refresh_token: str) -> dict | None:
+        async with self.db.get_conn() as conn:
+            async with conn.execute(
+                """
+                SELECT access_token, refresh_token, app_id, user_id, scope, expires_at, refresh_expires_at, created_at
+                FROM oauth_tokens
+                WHERE refresh_token=?
+                """,
+                (refresh_token,),
+            ) as cur:
+                row = await cur.fetchone()
+                if not row:
+                    return None
+                return {
+                    "access_token": row[0],
+                    "refresh_token": row[1],
+                    "app_id": row[2],
+                    "user_id": row[3],
+                    "scope": row[4],
+                    "expires_at": row[5],
+                    "refresh_expires_at": row[6],
+                    "created_at": row[7],
+                }
+
+    async def delete_access_token(self, access_token: str):
+        async with self.db.get_conn() as conn:
+            await conn.execute("DELETE FROM oauth_tokens WHERE access_token=?", (access_token,))
+            await conn.commit()
+
+    async def delete_refresh_token(self, refresh_token: str):
+        async with self.db.get_conn() as conn:
+            await conn.execute("DELETE FROM oauth_tokens WHERE refresh_token=?", (refresh_token,))
+            await conn.commit()
+
+    async def create_device_code(
+        self,
+        device_code: str,
+        user_code: str,
+        app_id: int,
+        scope: str,
+        expires_at: int,
+        interval_seconds: int,
+    ):
+        now = int(time.time() * 1000)
+        async with self.db.get_conn() as conn:
+            await conn.execute(
+                """
+                INSERT INTO oauth_device_codes (
+                    device_code, user_code, app_id, scope, status, user_id, expires_at,
+                    interval_seconds, last_polled_at, next_allowed_poll_at,
+                    approved_at, denied_at, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, 'pending', NULL, ?, ?, NULL, NULL, NULL, NULL, ?, ?)
+                """,
+                (device_code, user_code, app_id, scope, expires_at, interval_seconds, now, now),
+            )
+            await conn.commit()
+
+    async def get_device_code(self, device_code: str) -> dict | None:
+        async with self.db.get_conn() as conn:
+            async with conn.execute(
+                """
+                SELECT device_code, user_code, app_id, scope, status, user_id, expires_at,
+                       interval_seconds, last_polled_at, next_allowed_poll_at,
+                       approved_at, denied_at, created_at, updated_at
+                FROM oauth_device_codes
+                WHERE device_code=?
+                """,
+                (device_code,),
+            ) as cur:
+                row = await cur.fetchone()
+                if not row:
+                    return None
+                return {
+                    "device_code": row[0],
+                    "user_code": row[1],
+                    "app_id": row[2],
+                    "scope": row[3],
+                    "status": row[4],
+                    "user_id": row[5],
+                    "expires_at": row[6],
+                    "interval_seconds": row[7],
+                    "last_polled_at": row[8],
+                    "next_allowed_poll_at": row[9],
+                    "approved_at": row[10],
+                    "denied_at": row[11],
+                    "created_at": row[12],
+                    "updated_at": row[13],
+                }
+
+    async def get_device_code_by_user_code(self, user_code: str) -> dict | None:
+        async with self.db.get_conn() as conn:
+            async with conn.execute(
+                """
+                SELECT device_code, user_code, app_id, scope, status, user_id, expires_at,
+                       interval_seconds, last_polled_at, next_allowed_poll_at,
+                       approved_at, denied_at, created_at, updated_at
+                FROM oauth_device_codes
+                WHERE user_code=?
+                """,
+                (user_code,),
+            ) as cur:
+                row = await cur.fetchone()
+                if not row:
+                    return None
+                return {
+                    "device_code": row[0],
+                    "user_code": row[1],
+                    "app_id": row[2],
+                    "scope": row[3],
+                    "status": row[4],
+                    "user_id": row[5],
+                    "expires_at": row[6],
+                    "interval_seconds": row[7],
+                    "last_polled_at": row[8],
+                    "next_allowed_poll_at": row[9],
+                    "approved_at": row[10],
+                    "denied_at": row[11],
+                    "created_at": row[12],
+                    "updated_at": row[13],
+                }
+
+    async def approve_device_code(self, device_code: str, user_id: str, approved_at: int):
+        async with self.db.get_conn() as conn:
+            await conn.execute(
+                """
+                UPDATE oauth_device_codes
+                SET status='approved', user_id=?, approved_at=?, updated_at=?
+                WHERE device_code=?
+                """,
+                (user_id, approved_at, approved_at, device_code),
+            )
+            await conn.commit()
+
+    async def deny_device_code(self, device_code: str, denied_at: int):
+        async with self.db.get_conn() as conn:
+            await conn.execute(
+                """
+                UPDATE oauth_device_codes
+                SET status='denied', denied_at=?, updated_at=?
+                WHERE device_code=?
+                """,
+                (denied_at, denied_at, device_code),
+            )
+            await conn.commit()
+
+    async def update_device_poll(self, device_code: str, last_polled_at: int, next_allowed_poll_at: int):
+        async with self.db.get_conn() as conn:
+            await conn.execute(
+                """
+                UPDATE oauth_device_codes
+                SET last_polled_at=?, next_allowed_poll_at=?, updated_at=?
+                WHERE device_code=?
+                """,
+                (last_polled_at, next_allowed_poll_at, last_polled_at, device_code),
+            )
+            await conn.commit()
+
+    async def consume_device_code(self, device_code: str, consumed_at: int):
+        async with self.db.get_conn() as conn:
+            await conn.execute(
+                """
+                UPDATE oauth_device_codes
+                SET status='consumed', updated_at=?
+                WHERE device_code=?
+                """,
+                (consumed_at, device_code),
+            )
+            await conn.commit()
