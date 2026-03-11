@@ -199,12 +199,14 @@ class OAuthBackend:
 
         normalized_scope, parsed_scopes = self._parse_scope(scope)
         site_name = await self.db.setting.get("site_name", "vSkin")
+        site_title = await self.db.setting.get("site_title", site_name or "vSkin")
 
         return {
             "app_id": app["app_id"],
             "client_name": app["client_name"],
             "requester_name": app["client_name"] or "第三方应用",
             "site_name": site_name or "vSkin",
+            "site_title": site_title or site_name or "vSkin",
             "redirect_uri": app["redirect_uri"],
             "state": state or "",
             "scope": normalized_scope,

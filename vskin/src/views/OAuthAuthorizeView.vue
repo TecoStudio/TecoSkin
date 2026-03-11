@@ -17,7 +17,7 @@
         <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" show-icon />
 
         <div v-else class="app-info">
-          <div class="oauth-request-title">{{ requesterName }} 请求以 {{ siteName }} 账号登录</div>
+          <div class="oauth-request-title">{{ requesterName }} 请求以 {{ siteTitle }} 账号登录</div>
           <div class="oauth-scope-list">
             <div class="scope-item" v-for="item in scopeItems" :key="item.key">
               <strong>{{ item.label }}</strong>
@@ -52,7 +52,7 @@ const submitting = ref(false)
 const errorMessage = ref('')
 
 const requesterName = ref('第三方应用')
-const siteName = ref('vSkin')
+const siteTitle = ref(localStorage.getItem('site_title_cache') || localStorage.getItem('site_name_cache') || 'vSkin')
 const clientId = ref('')
 const redirectUri = ref('')
 const state = ref('')
@@ -100,7 +100,7 @@ async function loadAuthorizeInfo() {
     })
 
     requesterName.value = res.data.requester_name || '第三方应用'
-    siteName.value = res.data.site_name || 'vSkin'
+  siteTitle.value = res.data.site_title || res.data.site_name || 'vSkin'
     clientId.value = String(res.data.app_id)
     redirectUri.value = res.data.redirect_uri
     state.value = res.data.state || ''
