@@ -51,15 +51,29 @@ html.dark .hero-gradient-bg {
   box-shadow: none !important;
 }
 
-.el-button--primary {
+.el-button--primary:not(.is-plain) {
   background: #2f78ba !important;
   border-color: #296ca8 !important;
+  color: #ffffff !important;
 }
 
-.el-button--primary:hover,
-.el-button--primary:focus {
+.el-button--primary:not(.is-plain):hover,
+.el-button--primary:not(.is-plain):focus {
   background: #266aa6 !important;
   border-color: #225e92 !important;
+}
+
+.el-button--primary.is-plain {
+  background: #ffffff !important;
+  border-color: #9ec3e3 !important;
+  color: #2f78ba !important;
+}
+
+.el-button--primary.is-plain:hover,
+.el-button--primary.is-plain:focus {
+  background: #eaf4fd !important;
+  border-color: #78aeda !important;
+  color: #225e92 !important;
 }
 
 .el-input__wrapper,

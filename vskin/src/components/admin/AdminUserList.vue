@@ -62,9 +62,10 @@
     <!-- User Detail Dialog -->
     <el-dialog
       v-model="userDetailDialogVisible"
-      :title="currentUser?.display_name || currentUser?.email || '用户详情'"
+      title="用户详情"
       width="800px"
-      class="dialog-viewer"
+      append-to-body
+      align-center
       destroy-on-close
     >
       <div v-if="currentUser" class="user-detail-container">
@@ -187,7 +188,7 @@
     </el-dialog>
 
     <!-- Reset Password Dialog -->
-    <el-dialog v-model="resetPasswordDialogVisible" title="重置用户密码" width="400px">
+    <el-dialog v-model="resetPasswordDialogVisible" title="重置用户密码" width="400px" append-to-body align-center>
       <el-form label-position="top">
         <el-form-item label="新密码 (最少6位)">
           <el-input v-model="resetPasswordForm.new_password" type="password" show-password />
@@ -203,7 +204,7 @@
     </el-dialog>
 
     <!-- Ban User Dialog -->
-    <el-dialog v-model="banDialogVisible" title="设置封禁时长" width="450px">
+    <el-dialog v-model="banDialogVisible" title="设置封禁时长" width="450px" append-to-body align-center>
       <div class="ban-dialog-body">
         <el-radio-group v-model="banDurationType" class="mb-4 capsule-radio">
           <el-radio-button value="preset">快速选择</el-radio-button>
@@ -428,10 +429,6 @@ const formatBanUntilTime = () => {
 
 onMounted(refreshUsers)
 </script>
-
-<style>
-@import "@/assets/styles/dialogs.css";
-</style>
 
 <style scoped>
 @import "@/assets/styles/animations.css";
