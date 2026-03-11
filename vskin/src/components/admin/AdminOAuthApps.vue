@@ -5,11 +5,11 @@
         <div class="page-header-icon"><Link /></div>
         <div class="page-header-text">
           <h2>OAuth 2 应用管理</h2>
-          <p class="subtitle">为外部平台创建应用，并在这里直接完成 USTBL 设备授权流配置</p>
+          <p class="subtitle">为外部平台创建应用，并在这里直接完成设备授权流配置</p>
         </div>
       </div>
       <div class="page-header-actions">
-        <el-button @click="openCreateDeviceDialog">新增 USTBL 共享应用</el-button>
+        <el-button @click="openCreateDeviceDialog">新增授权设备应用</el-button>
         <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增应用</el-button>
       </div>
     </div>
@@ -60,14 +60,14 @@
     <el-card class="surface-card mb-6" shadow="never">
       <template #header>
         <div class="card-header-flex">
-          <span>USTBL 设备授权流设置</span>
+          <span>设备授权流设置</span>
           <el-button text :icon="Refresh" @click="loadData">刷新</el-button>
         </div>
       </template>
       <el-form label-position="top" :model="deviceSettings">
         <div class="meta-grid">
           <div class="meta-item">
-            <div class="meta-label">USTBL 共享客户端</div>
+            <div class="meta-label">授权设备共享客户端</div>
             <el-select v-model="deviceSettings.shared_client_id" clearable placeholder="选择一个 OAuth 应用作为 shared_client_id">
               <el-option v-for="app in apps" :key="app.app_id" :label="`${app.app_id} - ${app.client_name || '未命名应用'}`" :value="app.app_id" />
             </el-select>
@@ -81,14 +81,14 @@
             <el-input-number v-model="deviceSettings.interval" :min="5" :step="1" />
           </div>
           <div class="meta-item">
-            <div class="meta-label">USTBL 默认回调 URL</div>
+            <div class="meta-label">设备流默认回调 URL</div>
             <el-input v-model="deviceSettings.default_redirect_uri" placeholder="https://oauth.ustb.world/" />
-            <p class="hint-text">设备授权流不会使用这个地址回调浏览器，它只需要是一个合法的 http(s) 地址。默认可直接填写 https://oauth.ustb.world/，不需要可访问，也不需要由你控制。</p>
+            <p class="hint-text">设备授权流不会使用这个地址回调浏览器，它只需要是一个合法的 http(s) 地址。默认可直接填写 https://oauth.ustb.world/。这个地址不需要可访问，也不需要由你控制。</p>
           </div>
         </div>
       </el-form>
       <div class="device-settings-actions">
-        <el-button type="primary" :loading="savingDeviceSettings" @click="saveDeviceSettings">保存 USTBL 设置</el-button>
+        <el-button type="primary" :loading="savingDeviceSettings" @click="saveDeviceSettings">保存设备授权设置</el-button>
       </div>
     </el-card>
 
@@ -106,14 +106,14 @@
           <template #default="{ row }">
             <div class="app-name-cell">
               <span>{{ row.client_name || '未命名应用' }}</span>
-              <el-tag v-if="row.is_device_shared_client" size="small" type="success">USTBL 共享客户端</el-tag>
+              <el-tag v-if="row.is_device_shared_client" size="small" type="success">授权设备共享客户端</el-tag>
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="redirect_uri" label="回调 URL" min-width="280" />
         <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="success" plain @click="setSharedClient(row)" :disabled="row.is_device_shared_client">设为 USTBL</el-button>
+            <el-button size="small" type="success" plain @click="setSharedClient(row)" :disabled="row.is_device_shared_client">设为授权设备</el-button>
             <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
             <el-button size="small" type="warning" @click="resetSecret(row)">重置 Secret</el-button>
             <el-button size="small" type="danger" @click="removeApp(row)">删除</el-button>
@@ -129,11 +129,11 @@
         </el-form-item>
         <el-form-item label="回调 URL">
           <el-input v-model="form.redirect_uri" placeholder="https://your-app.example.com/oauth/callback" />
-          <p class="hint-text">授权码模式必须填写真实回调地址。USTBL 设备授权流不会用到回调，可直接填写 https://oauth.ustb.world/。</p>
+          <p class="hint-text">授权码模式必须填写真实回调地址。设备授权流不会用到回调，可直接填写 https://oauth.ustb.world/。</p>
         </el-form-item>
         <el-form-item>
           <el-switch v-model="form.set_as_device_shared_client" />
-          <span class="form-inline-label">设为 USTBL 共享客户端</span>
+          <span class="form-inline-label">设为授权设备共享客户端</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -221,7 +221,7 @@ function openCreateDialog() {
 function openCreateDeviceDialog() {
   isEditing.value = false
   currentAppId.value = null
-  form.client_name = 'USTBL'
+  form.client_name = '授权设备'
   form.redirect_uri = deviceSettings.default_redirect_uri || 'https://oauth.ustb.world/'
   form.set_as_device_shared_client = true
   dialogVisible.value = true
@@ -268,7 +268,7 @@ async function saveDeviceSettings() {
     const res = await axios.post('/admin/oauth/device-settings', deviceSettings, { headers: authHeaders() })
     Object.assign(deviceSettings, res.data || {})
     await loadData()
-    ElMessage.success('USTBL 设备授权设置已保存')
+    ElMessage.success('设备授权设置已保存')
   } catch (e) {
     ElMessage.error(e.response?.data?.detail || '保存失败')
   } finally {
@@ -288,7 +288,7 @@ async function setSharedClient(row) {
     )
     Object.assign(deviceSettings, res.data || {})
     await loadData()
-    ElMessage.success(`AppID ${row.app_id} 已设为 USTBL 共享客户端`)
+    ElMessage.success(`AppID ${row.app_id} 已设为授权设备共享客户端`)
   } catch (e) {
     ElMessage.error(e.response?.data?.detail || '设置失败')
   }

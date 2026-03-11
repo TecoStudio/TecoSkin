@@ -35,7 +35,7 @@
             <span>用户代码</span>
             <strong>{{ preview.user_code }}</strong>
           </div>
-          <div class="device-title">{{ preview.requester_name || 'USTBL' }} 正在请求访问 {{ preview.site_title || preview.site_name || 'vSkin' }}</div>
+          <div class="device-title">{{ preview.requester_name || '授权设备' }} 正在请求访问 {{ preview.site_title || preview.site_name || 'vSkin' }}</div>
           <div class="device-status" :class="preview.status">{{ statusText }}</div>
           <div class="oauth-scope-list">
             <div class="scope-item" v-for="item in preview.scope_items || []" :key="item.key">

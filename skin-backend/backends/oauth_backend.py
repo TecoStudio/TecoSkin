@@ -293,7 +293,7 @@ class OAuthBackend:
         default_redirect_uri = await self._device_default_redirect_uri()
         for row in rows:
             row["is_device_shared_client"] = bool(shared_client_id and int(row["app_id"]) == int(shared_client_id))
-            row["can_use_for_ustbl_device_flow"] = True
+            row["can_use_for_device_flow"] = True
             row["recommended_device_redirect_uri"] = default_redirect_uri
         return rows
 
@@ -743,7 +743,7 @@ class OAuthBackend:
         return {
             "user_code": normalized_user_code,
             "status": record["status"],
-            "requester_name": app["client_name"] or "USTBL",
+            "requester_name": app["client_name"] or "授权设备",
             "client_name": app["client_name"],
             "site_name": site_name or "vSkin",
             "site_title": site_title or site_name or "vSkin",
