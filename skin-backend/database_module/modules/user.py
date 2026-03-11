@@ -178,11 +178,49 @@ class UserModule:
     async def get_profiles_by_user(self, user_id: str) -> list[PlayerProfile]:
         async with self.db.get_conn() as conn:
             async with conn.execute(
-                "SELECT id, user_id, name, texture_model, skin_hash, cape_hash FROM profiles WHERE user_id=?",
+                "SELECT id, user_id, name, texture_model, skin_hash, cape_hash FROM profiles WHERE user_id=? ORDER BY rowid ASC",
                 (user_id,),
             ) as cur:
                 rows = await cur.fetchall()
                 return [PlayerProfile(*r) for r in rows]
+
+    async def get_active_profile_for_oauth(self, user_id: str) -> PlayerProfile | None:
+        async with self.db.get_conn() as conn:
+            async with conn.execute(
+                """
+                SELECT id, user_id, name, texture_model, skin_hash, cape_hash
+                FROM profiles
+                WHERE id = (
+                    SELECT profile_id
+                    FROM tokens
+                    WHERE user_id = ? AND profile_id IS NOT NULL
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                )
+                """,
+                (user_id,),
+            ) as cur:
+                row = await cur.fetchone()
+                if row:
+                    return PlayerProfile(*row)
+
+            async with conn.execute(
+                "SELECT id, user_id, name, texture_model, skin_hash, cape_hash FROM profiles WHERE user_id=? AND skin_hash IS NOT NULL ORDER BY rowid ASC LIMIT 1",
+                (user_id,),
+            ) as cur:
+                row = await cur.fetchone()
+                if row:
+                    return PlayerProfile(*row)
+
+            async with conn.execute(
+                "SELECT id, user_id, name, texture_model, skin_hash, cape_hash FROM profiles WHERE user_id=? ORDER BY rowid ASC LIMIT 1",
+                (user_id,),
+            ) as cur:
+                row = await cur.fetchone()
+                if row:
+                    return PlayerProfile(*row)
+
+        return None
 
     async def create_profile(self, profile: PlayerProfile):
         async with self.db.get_conn() as conn:

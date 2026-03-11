@@ -11,7 +11,7 @@ from fastapi import (
     Form,
     Query,
 )
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 from utils.image_utils import default_steve_head_avatar
@@ -26,6 +26,15 @@ security = HTTPBearer()
 
 def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config: Config):
     """设置路由（注入依赖）"""
+
+    def get_oauth_bearer_token(request: Request) -> str:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = auth_header[7:].strip()
+        if not access_token:
+            raise HTTPException(status_code=401, detail="missing bearer token")
+        return access_token
 
     async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         token = creds.credentials
@@ -398,42 +407,39 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
 
     @router.get("/oauth/userinfo")
     async def oauth_userinfo(request: Request):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="missing bearer token")
-        access_token = auth_header[7:].strip()
-        if not access_token:
-            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = get_oauth_bearer_token(request)
         return await oauth_backend.get_userinfo(access_token)
 
     @router.get("/oauth/profile")
     async def oauth_profile(request: Request):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="missing bearer token")
-        access_token = auth_header[7:].strip()
-        if not access_token:
-            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = get_oauth_bearer_token(request)
         return await oauth_backend.get_profile_info(access_token)
 
     @router.get("/oauth/avatar")
     async def oauth_avatar(request: Request):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="missing bearer token")
-        access_token = auth_header[7:].strip()
-        if not access_token:
-            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = get_oauth_bearer_token(request)
         return await oauth_backend.get_avatar_info(access_token)
 
     @router.get("/oauth/email")
     async def oauth_email(request: Request):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="missing bearer token")
-        access_token = auth_header[7:].strip()
-        if not access_token:
-            raise HTTPException(status_code=401, detail="missing bearer token")
+        access_token = get_oauth_bearer_token(request)
         return await oauth_backend.get_email_info(access_token)
+
+    @router.get("/oauth/skin")
+    async def oauth_skin(request: Request):
+        access_token = get_oauth_bearer_token(request)
+        skin_info = await oauth_backend.get_skin_info(access_token)
+        return FileResponse(
+            skin_info["path"],
+            media_type="image/png",
+            filename=f"{skin_info['profile_name']}.png",
+            headers={
+                "X-VSkin-Profile-Id": skin_info["profile_id"],
+                "X-VSkin-Profile-Name": skin_info["profile_name"],
+                "X-VSkin-Skin-Hash": skin_info["skin_hash"],
+                "X-VSkin-Skin-Model": skin_info["model"],
+                "Cache-Control": "private, max-age=300",
+            },
+        )
 
     return router

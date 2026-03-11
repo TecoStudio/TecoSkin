@@ -100,7 +100,7 @@ async function loadAuthorizeInfo() {
     })
 
     requesterName.value = res.data.requester_name || '第三方应用'
-  siteTitle.value = res.data.site_title || res.data.site_name || 'vSkin'
+    siteTitle.value = res.data.site_title || res.data.site_name || 'vSkin'
     clientId.value = String(res.data.app_id)
     redirectUri.value = res.data.redirect_uri
     state.value = res.data.state || ''

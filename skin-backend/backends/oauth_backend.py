@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 import time
 from urllib.parse import urlencode
@@ -27,6 +28,10 @@ class OAuthBackend:
             "label": "邮箱",
             "description": "读取邮箱地址",
         },
+        "skin": {
+            "label": "当前皮肤",
+            "description": "读取当前正在使用的皮肤 PNG 源图",
+        },
     }
 
     def __init__(self, db: Database, config: Config):
@@ -54,6 +59,32 @@ class OAuthBackend:
         path = "/public/default-avatar"
         api_url = self._api_url()
         return f"{api_url}{path}" if api_url else path
+
+    def _skin_url_from_hash(self, skin_hash: str) -> str:
+        path = f"/static/textures/{skin_hash}.png"
+        site = self._site_url()
+        return f"{site}{path}" if site else path
+
+    def _texture_file_path(self, texture_hash: str) -> str | None:
+        candidate_dirs = []
+
+        textures_dir = getattr(self.db.texture, "textures_dir", None)
+        if textures_dir:
+            candidate_dirs.append(str(textures_dir))
+
+        config_dir = str(self.config.get("textures.directory", "textures"))
+        if config_dir not in candidate_dirs:
+            candidate_dirs.append(config_dir)
+
+        if "textures" not in candidate_dirs:
+            candidate_dirs.append("textures")
+
+        for directory in candidate_dirs:
+            file_path = os.path.join(directory, f"{texture_hash}.png")
+            if os.path.isfile(file_path):
+                return file_path
+
+        return None
 
     def _parse_scope(self, scope: str) -> tuple[str, list[str]]:
         raw = (scope or "userinfo").replace(",", " ")
@@ -179,6 +210,7 @@ class OAuthBackend:
             "authorize_endpoint": f"{site_url}/oauth/authorize" if site_url else "/oauth/authorize",
             "token_endpoint": f"{api_url}/oauth/token" if api_url else "/oauth/token",
             "userinfo_endpoint": f"{api_url}/oauth/userinfo" if api_url else "/oauth/userinfo",
+            "skin_endpoint": f"{api_url}/oauth/skin" if api_url else "/oauth/skin",
             "sample_redirect_uri": sample_redirect,
         }
 
@@ -387,5 +419,31 @@ class OAuthBackend:
         return {
             "sub": user.id,
             "email": user.email,
+            "scope": scope_text,
+        }
+
+    async def get_skin_info(self, access_token: str) -> dict:
+        record, user = await self._resolve_token_and_user(access_token)
+        scope_text = record.get("scope") or "userinfo"
+        if not self._has_scope(scope_text, "skin"):
+            raise HTTPException(status_code=403, detail="missing skin scope")
+
+        profile = await self.db.user.get_active_profile_for_oauth(user.id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="profile not found")
+        if not profile.skin_hash:
+            raise HTTPException(status_code=404, detail="skin not found")
+
+        file_path = self._texture_file_path(profile.skin_hash)
+        if not file_path:
+            raise HTTPException(status_code=404, detail="skin file not found")
+
+        return {
+            "path": file_path,
+            "skin_hash": profile.skin_hash,
+            "skin_url": self._skin_url_from_hash(profile.skin_hash),
+            "profile_id": profile.id,
+            "profile_name": profile.name,
+            "model": profile.texture_model,
             "scope": scope_text,
         }

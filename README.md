@@ -205,6 +205,20 @@ server {
   * `redirect_uri={redirect_uri}`
 5. 使用返回的 `access_token` 调用：`GET {api_url}/oauth/userinfo`，并带上 `Authorization: Bearer {access_token}`。
 
+可选 scope：
+
+* `userinfo`：读取基础资料（默认）
+* `email`：读取邮箱
+* `skin`：读取当前正在使用的皮肤 PNG 源图
+
+如果第三方申请了 `skin` scope，可继续调用：
+
+* `GET {api_url}/oauth/skin`
+* 请求头：`Authorization: Bearer {access_token}`
+* 返回：当前用户正在使用的皮肤 PNG 文件
+
+当前皮肤选择规则：优先返回最近一次 Yggdrasil 登录选中的角色皮肤；如果没有最近选中角色，则回退到该用户第一个已设置皮肤的角色。
+
 授权页说明：
 
 * 用户授权页仅展示「{第三方站点} 请求以 {本站} 登录」及权限列表（scope）。

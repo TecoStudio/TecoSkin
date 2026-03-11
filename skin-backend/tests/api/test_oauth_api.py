@@ -1,5 +1,8 @@
 import pytest
 from urllib.parse import urlparse, parse_qs
+from io import BytesIO
+
+from PIL import Image
 
 
 @pytest.mark.asyncio
@@ -40,6 +43,33 @@ async def test_oauth_authorize_and_token_exchange(client, admin_headers, auth_he
     admin_h = {"Authorization": admin_headers["Authorization"]}
     user_h = {"Authorization": auth_headers["Authorization"]}
 
+    create_profile_resp = await client.post(
+        "/me/profiles",
+        json={"name": "OAuthSkinPlayer", "model": "default"},
+        headers=user_h,
+    )
+    assert create_profile_resp.status_code == 200
+    profile_id = create_profile_resp.json()["id"]
+
+    skin_file = BytesIO()
+    Image.new("RGBA", size=(64, 64), color=(40, 160, 220, 255)).save(skin_file, "png")
+    skin_file.seek(0)
+    upload_resp = await client.post(
+        "/me/textures",
+        data={"texture_type": "skin", "note": "OAuth Skin", "is_public": "false", "model": "default"},
+        files={"file": ("oauth-skin.png", skin_file, "image/png")},
+        headers=user_h,
+    )
+    assert upload_resp.status_code == 200
+    skin_hash = upload_resp.json()["hash"]
+
+    apply_resp = await client.post(
+        f"/me/textures/{skin_hash}/apply",
+        json={"profile_id": profile_id, "texture_type": "skin"},
+        headers=user_h,
+    )
+    assert apply_resp.status_code == 200
+
     create_resp = await client.post(
         "/admin/oauth/apps",
         json={
@@ -57,14 +87,15 @@ async def test_oauth_authorize_and_token_exchange(client, admin_headers, auth_he
             "client_id": app["app_id"],
             "redirect_uri": app["redirect_uri"],
             "state": "s123",
-            "scope": "userinfo email",
+            "scope": "userinfo email skin",
         },
     )
     assert check_resp.status_code == 200
     check_data = check_resp.json()
     assert check_data["site_name"]
     assert check_data["requester_name"]
-    assert check_data["scope"] == "userinfo email"
+    assert check_data["scope"] == "userinfo email skin"
+    assert any(item["key"] == "skin" for item in check_data["scope_items"])
 
     decision_resp = await client.post(
         "/oauth/authorize/decision",
@@ -72,7 +103,7 @@ async def test_oauth_authorize_and_token_exchange(client, admin_headers, auth_he
             "client_id": app["app_id"],
             "redirect_uri": app["redirect_uri"],
             "state": "s123",
-            "scope": "userinfo email",
+            "scope": "userinfo email skin",
             "approved": True,
         },
         headers=user_h,
@@ -132,3 +163,13 @@ async def test_oauth_authorize_and_token_exchange(client, admin_headers, auth_he
     )
     assert email_resp.status_code == 200
     assert email_resp.json().get("email")
+
+    skin_resp = await client.get(
+        "/oauth/skin",
+        headers={"Authorization": f"Bearer {token_data['access_token']}"},
+    )
+    assert skin_resp.status_code == 200
+    assert skin_resp.headers.get("content-type", "").startswith("image/png")
+    assert skin_resp.headers.get("x-vskin-profile-id") == profile_id
+    assert skin_resp.headers.get("x-vskin-skin-hash") == skin_hash
+    assert skin_resp.content
