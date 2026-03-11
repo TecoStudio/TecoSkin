@@ -81,7 +81,15 @@
     </el-header>
 
     <!-- Mobile Drawer -->
-    <el-drawer v-model="drawer" title="导航菜单" direction="ltr" size="280px" class="mobile-drawer">
+    <el-drawer
+      v-model="drawer"
+      title="导航菜单"
+      direction="ltr"
+      size="280px"
+      class="mobile-drawer"
+      append-to-body
+      :lock-scroll="true"
+    >
       <el-menu :default-active="activeRoute" router @select="drawer = false" class="drawer-menu">
         <template v-for="(item, index) in drawerLinks" :key="index">
             <el-divider v-if="item.isDivider" class="nav-divider" />
@@ -456,6 +464,10 @@ html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
 .mobile-drawer :deep(.el-menu) { border-right: none; background: transparent; }
 .mobile-drawer :deep(.el-menu-item) { color: var(--color-text); border-radius: 8px; margin: 4px 8px; height: 44px; line-height: 44px; }
 .mobile-drawer :deep(.el-menu-item.is-active) { background-color: rgba(64, 158, 255, 0.1); color: var(--el-color-primary); font-weight: 600; }
+.mobile-drawer :deep(.el-drawer__body) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 
 .layout-header {
   display: flex;

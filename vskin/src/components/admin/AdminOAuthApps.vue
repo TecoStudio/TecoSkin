@@ -122,7 +122,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑 OAuth 应用' : '新增 OAuth 应用'" width="560px">
+    <el-dialog v-model="dialogVisible" :title="isEditing ? '编辑 OAuth 应用' : '新增 OAuth 应用'" width="560px" append-to-body align-center>
       <el-form label-position="top" :model="form">
         <el-form-item label="应用名称">
           <el-input v-model="form.client_name" placeholder="例如：论坛登录" />
@@ -142,7 +142,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="secretDialogVisible" title="请保存新的 Client Secret" width="560px">
+    <el-dialog v-model="secretDialogVisible" title="请保存新的 Client Secret" width="560px" append-to-body align-center>
       <p class="secret-tip">安全提示：该 secret 仅会在当前窗口完整展示一次。</p>
       <el-input readonly :model-value="newSecret" />
       <template #footer>

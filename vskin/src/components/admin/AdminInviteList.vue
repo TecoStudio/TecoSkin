@@ -62,6 +62,8 @@
       v-model="inviteDialogVisible"
       title="创建新邀请码"
       width="500px"
+      append-to-body
+      align-center
       class="dialog-viewer"
     >
       <div style="padding: 24px">

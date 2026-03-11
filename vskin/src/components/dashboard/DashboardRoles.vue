@@ -71,7 +71,7 @@
     </div>
 
     <!-- 新建角色对话框 -->
-    <el-dialog v-model="showCreateRoleDialog" title="新建角色" width="420px">
+    <el-dialog v-model="showCreateRoleDialog" title="新建角色" width="420px" append-to-body align-center>
       <el-form label-width="100px">
         <el-form-item label="角色名称">
           <el-input v-model="newRoleName" placeholder="请输入角色名称" maxlength="32" show-word-limit />
@@ -91,6 +91,8 @@
       v-model="showMicrosoftLoginDialog"
       title="绑定正版角色"
       width="400px"
+      append-to-body
+      align-center
       :close-on-click-modal="false"
       :destroy-on-close="true"
       :before-close="handleMicrosoftDialogClose"
