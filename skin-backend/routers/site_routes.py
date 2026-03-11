@@ -391,7 +391,7 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
 
     @router.get("/.well-known/openid-configuration")
     async def openid_configuration():
-        return oauth_backend.openid_configuration()
+        return await oauth_backend.openid_configuration()
 
     @router.get("/oauth/jwks")
     async def oauth_jwks():

@@ -22,6 +22,7 @@ async def test_admin_manage_oauth_apps(client, admin_headers):
     created = create_resp.json()
     assert created["app_id"] >= 1
     assert created["client_secret"]
+    assert created["is_device_shared_client"] is False
 
     list_resp = await client.get("/admin/oauth/apps", headers=headers)
     assert list_resp.status_code == 200
@@ -33,10 +34,15 @@ async def test_admin_manage_oauth_apps(client, admin_headers):
         json={
             "client_name": "Forum Login V2",
             "redirect_uri": "https://forum.example.com/oauth/callback2",
+            "set_as_device_shared_client": True,
         },
         headers=headers,
     )
     assert update_resp.status_code == 200
+
+    device_settings_resp = await client.get("/admin/oauth/device-settings", headers=headers)
+    assert device_settings_resp.status_code == 200
+    assert device_settings_resp.json()["shared_client_id"] == created["app_id"]
 
 
 @pytest.mark.asyncio
@@ -228,7 +234,7 @@ async def test_oauth_permissions_endpoint(client, admin_headers, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_oauth_device_flow_and_openid_metadata(client, admin_headers, auth_headers, test_config, crypto_fixture):
+async def test_oauth_device_flow_and_openid_metadata(client, admin_headers, auth_headers, crypto_fixture):
     admin_h = {"Authorization": admin_headers["Authorization"]}
     user_h = {"Authorization": auth_headers["Authorization"]}
 
@@ -262,14 +268,18 @@ async def test_oauth_device_flow_and_openid_metadata(client, admin_headers, auth
         "/admin/oauth/apps",
         json={
             "client_name": "USTBL",
-            "redirect_uri": "https://skin.ustb.world/launcher-placeholder",
+            "redirect_uri": "https://oauth.ustb.world/",
+            "set_as_device_shared_client": True,
         },
         headers=admin_h,
     )
     assert create_resp.status_code == 200
     app = create_resp.json()
 
-    test_config._data.setdefault("oauth", {}).setdefault("device", {})["shared_client_id"] = str(app["app_id"])
+    device_settings_resp = await client.get("/admin/oauth/device-settings", headers=admin_h)
+    assert device_settings_resp.status_code == 200
+    assert device_settings_resp.json()["shared_client_id"] == app["app_id"]
+    assert device_settings_resp.json()["default_redirect_uri"] == "https://oauth.ustb.world/"
 
     openid_resp = await client.get("/.well-known/openid-configuration")
     assert openid_resp.status_code == 200

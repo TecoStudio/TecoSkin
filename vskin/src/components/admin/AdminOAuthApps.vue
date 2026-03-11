@@ -5,10 +5,11 @@
         <div class="page-header-icon"><Link /></div>
         <div class="page-header-text">
           <h2>OAuth 2 应用管理</h2>
-          <p class="subtitle">为外部平台创建 appid、secret 和回调地址</p>
+          <p class="subtitle">为外部平台创建应用，并在这里直接完成 USTBL 设备授权流配置</p>
         </div>
       </div>
       <div class="page-header-actions">
+        <el-button @click="openCreateDeviceDialog">新增 USTBL 共享应用</el-button>
         <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增应用</el-button>
       </div>
     </div>
@@ -37,13 +38,64 @@
           <div class="meta-label">回调地址样例</div>
           <el-input readonly :model-value="meta.sample_redirect_uri" />
         </div>
+        <div class="meta-item">
+          <div class="meta-label">设备授权地址</div>
+          <el-input readonly :model-value="meta.device_authorization_endpoint" />
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">OpenID 配置地址</div>
+          <el-input readonly :model-value="meta.openid_configuration_url" />
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">JWKS 地址</div>
+          <el-input readonly :model-value="meta.jwks_uri" />
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">浏览器授权页</div>
+          <el-input readonly :model-value="meta.verification_uri" />
+        </div>
+      </div>
+    </el-card>
+
+    <el-card class="surface-card mb-6" shadow="never">
+      <template #header>
+        <div class="card-header-flex">
+          <span>USTBL 设备授权流设置</span>
+          <el-button text :icon="Refresh" @click="loadData">刷新</el-button>
+        </div>
+      </template>
+      <el-form label-position="top" :model="deviceSettings">
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label">USTBL 共享客户端</div>
+            <el-select v-model="deviceSettings.shared_client_id" clearable placeholder="选择一个 OAuth 应用作为 shared_client_id">
+              <el-option v-for="app in apps" :key="app.app_id" :label="`${app.app_id} - ${app.client_name || '未命名应用'}`" :value="app.app_id" />
+            </el-select>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">设备码有效期（秒）</div>
+            <el-input-number v-model="deviceSettings.expires_in" :min="300" :step="60" />
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">轮询间隔（秒）</div>
+            <el-input-number v-model="deviceSettings.interval" :min="5" :step="1" />
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">USTBL 默认回调 URL</div>
+            <el-input v-model="deviceSettings.default_redirect_uri" placeholder="https://oauth.ustb.world/" />
+            <p class="hint-text">设备授权流不会使用这个地址回调浏览器，它只需要是一个合法的 http(s) 地址。默认可直接填写 https://oauth.ustb.world/，不需要可访问，也不需要由你控制。</p>
+          </div>
+        </div>
+      </el-form>
+      <div class="device-settings-actions">
+        <el-button type="primary" :loading="savingDeviceSettings" @click="saveDeviceSettings">保存 USTBL 设置</el-button>
       </div>
     </el-card>
 
     <el-card class="surface-card" shadow="never">
       <template #header>
         <div class="card-header-flex">
-          <span>已创建应用（appid 从 1 开始）</span>
+          <span>已创建应用</span>
           <el-tag type="info" effect="plain">共 {{ apps.length }} 个</el-tag>
         </div>
       </template>
@@ -52,12 +104,16 @@
         <el-table-column prop="app_id" label="AppID" width="100" />
         <el-table-column prop="client_name" label="应用名称" min-width="180">
           <template #default="{ row }">
-            <span>{{ row.client_name || '未命名应用' }}</span>
+            <div class="app-name-cell">
+              <span>{{ row.client_name || '未命名应用' }}</span>
+              <el-tag v-if="row.is_device_shared_client" size="small" type="success">USTBL 共享客户端</el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="redirect_uri" label="回调 URL" min-width="280" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" type="success" plain @click="setSharedClient(row)" :disabled="row.is_device_shared_client">设为 USTBL</el-button>
             <el-button size="small" @click="openEditDialog(row)">编辑</el-button>
             <el-button size="small" type="warning" @click="resetSecret(row)">重置 Secret</el-button>
             <el-button size="small" type="danger" @click="removeApp(row)">删除</el-button>
@@ -73,7 +129,11 @@
         </el-form-item>
         <el-form-item label="回调 URL">
           <el-input v-model="form.redirect_uri" placeholder="https://your-app.example.com/oauth/callback" />
-          <p class="hint-text">必须是完整的 http(s) 地址，并与外部应用配置完全一致。</p>
+          <p class="hint-text">授权码模式必须填写真实回调地址。USTBL 设备授权流不会用到回调，可直接填写 https://oauth.ustb.world/。</p>
+        </el-form-item>
+        <el-form-item>
+          <el-switch v-model="form.set_as_device_shared_client" />
+          <span class="form-inline-label">设为 USTBL 共享客户端</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -103,32 +163,47 @@ const apps = ref([])
 const meta = reactive({
   authorize_endpoint: '',
   token_endpoint: '',
+  device_authorization_endpoint: '',
+  openid_configuration_url: '',
+  jwks_uri: '',
+  verification_uri: '',
   userinfo_endpoint: '',
   sample_redirect_uri: 'https://your-app.example.com/oauth/callback',
+})
+
+const deviceSettings = reactive({
+  shared_client_id: null,
+  expires_in: 900,
+  interval: 5,
+  default_redirect_uri: 'https://oauth.ustb.world/',
 })
 
 const dialogVisible = ref(false)
 const secretDialogVisible = ref(false)
 const isEditing = ref(false)
 const saving = ref(false)
+const savingDeviceSettings = ref(false)
 const currentAppId = ref(null)
 const newSecret = ref('')
 
 const form = reactive({
   client_name: '',
   redirect_uri: '',
+  set_as_device_shared_client: false,
 })
 
 const authHeaders = () => ({ Authorization: 'Bearer ' + localStorage.getItem('jwt') })
 
 async function loadData() {
   try {
-    const [metaRes, appsRes] = await Promise.all([
+    const [metaRes, appsRes, deviceSettingsRes] = await Promise.all([
       axios.get('/admin/oauth/meta', { headers: authHeaders() }),
       axios.get('/admin/oauth/apps', { headers: authHeaders() }),
+      axios.get('/admin/oauth/device-settings', { headers: authHeaders() }),
     ])
     Object.assign(meta, metaRes.data || {})
     apps.value = (appsRes.data || []).sort((a, b) => Number(a.app_id) - Number(b.app_id))
+    Object.assign(deviceSettings, deviceSettingsRes.data || {})
   } catch (e) {
     ElMessage.error('加载 OAuth 应用失败')
   }
@@ -139,6 +214,16 @@ function openCreateDialog() {
   currentAppId.value = null
   form.client_name = ''
   form.redirect_uri = meta.sample_redirect_uri || 'https://your-app.example.com/oauth/callback'
+  form.set_as_device_shared_client = false
+  dialogVisible.value = true
+}
+
+function openCreateDeviceDialog() {
+  isEditing.value = false
+  currentAppId.value = null
+  form.client_name = 'USTBL'
+  form.redirect_uri = deviceSettings.default_redirect_uri || 'https://oauth.ustb.world/'
+  form.set_as_device_shared_client = true
   dialogVisible.value = true
 }
 
@@ -147,6 +232,7 @@ function openEditDialog(row) {
   currentAppId.value = row.app_id
   form.client_name = row.client_name || ''
   form.redirect_uri = row.redirect_uri || ''
+  form.set_as_device_shared_client = !!row.is_device_shared_client
   dialogVisible.value = true
 }
 
@@ -173,6 +259,38 @@ async function submitForm() {
     ElMessage.error(e.response?.data?.detail || '保存失败')
   } finally {
     saving.value = false
+  }
+}
+
+async function saveDeviceSettings() {
+  savingDeviceSettings.value = true
+  try {
+    const res = await axios.post('/admin/oauth/device-settings', deviceSettings, { headers: authHeaders() })
+    Object.assign(deviceSettings, res.data || {})
+    await loadData()
+    ElMessage.success('USTBL 设备授权设置已保存')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || '保存失败')
+  } finally {
+    savingDeviceSettings.value = false
+  }
+}
+
+async function setSharedClient(row) {
+  try {
+    const res = await axios.post(
+      '/admin/oauth/device-settings',
+      {
+        ...deviceSettings,
+        shared_client_id: row.app_id,
+      },
+      { headers: authHeaders() },
+    )
+    Object.assign(deviceSettings, res.data || {})
+    await loadData()
+    ElMessage.success(`AppID ${row.app_id} 已设为 USTBL 共享客户端`)
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || '设置失败')
   }
 }
 
@@ -262,6 +380,23 @@ onMounted(loadData)
 .hint-text {
   margin: 6px 0 0 0;
   font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.device-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.app-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-inline-label {
+  margin-left: 10px;
   color: var(--color-text-light);
 }
 

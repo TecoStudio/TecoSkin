@@ -500,6 +500,18 @@ class Database(BaseDB):
             await conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES ('home_image_urls', '')"
             )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('oauth_device_shared_client_id', '')"
+            )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('oauth_device_expires_in', '900')"
+            )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('oauth_device_interval', '5')"
+            )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('oauth_device_default_redirect_uri', 'https://oauth.ustb.world/')"
+            )
 
             # SMTP Default Settings
             await conn.execute(

@@ -244,6 +244,14 @@ def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, confi
     async def get_oauth_meta(payload: dict = Depends(admin_required)):
         return await oauth_backend.admin_meta()
 
+    @router.get("/admin/oauth/device-settings")
+    async def get_oauth_device_settings(payload: dict = Depends(admin_required)):
+        return await oauth_backend.get_admin_device_settings()
+
+    @router.post("/admin/oauth/device-settings")
+    async def save_oauth_device_settings(payload: dict = Depends(admin_required), body: dict = Body(...)):
+        return await oauth_backend.save_admin_device_settings(body)
+
     @router.get("/admin/oauth/apps")
     async def get_oauth_apps(payload: dict = Depends(admin_required)):
         return await oauth_backend.list_apps()
@@ -252,13 +260,15 @@ def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, confi
     async def create_oauth_app(payload: dict = Depends(admin_required), body: dict = Body(...)):
         client_name = body.get("client_name", "")
         redirect_uri = body.get("redirect_uri", "")
-        return await oauth_backend.create_app(client_name, redirect_uri)
+        set_as_device_shared_client = bool(body.get("set_as_device_shared_client", False))
+        return await oauth_backend.create_app(client_name, redirect_uri, set_as_device_shared_client)
 
     @router.put("/admin/oauth/apps/{app_id}")
     async def update_oauth_app(app_id: int, payload: dict = Depends(admin_required), body: dict = Body(...)):
         client_name = body.get("client_name", "")
         redirect_uri = body.get("redirect_uri", "")
-        return await oauth_backend.update_app(app_id, client_name, redirect_uri)
+        set_as_device_shared_client = body.get("set_as_device_shared_client")
+        return await oauth_backend.update_app(app_id, client_name, redirect_uri, set_as_device_shared_client)
 
     @router.post("/admin/oauth/apps/{app_id}/reset-secret")
     async def reset_oauth_app_secret(app_id: int, payload: dict = Depends(admin_required)):

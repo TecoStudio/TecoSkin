@@ -15,8 +15,8 @@
 * **方形头像系统**：默认使用 Steve 头部平面头像；用户可从已上传/已收藏皮肤中一键截取正脸设为头像。
 * **后台能力充足**：支持站点设置、用户管理、邮件服务、轮播图、Fallback 节点配置等常见运维需求。
 * **用户组权限模型**：内置超级管理员、管理员、用户、老师四种用户组，支持可视化展示与后台分组管理。
-* **OAuth 2 对外登录**：支持管理员创建外部应用（appid/secret/回调地址），外部网站可通过 vSkin 账号完成授权登录。
-* **OAuth 2.0 设备授权流**：支持 USTBL 等启动器通过 Device Authorization Grant 登录，并提供 OpenID 配置、JWKS、id_token 与 refresh token。
+* **OAuth 2 对外登录**：支持管理员在后台创建应用并管理授权码模式接入。
+* **USTBL 设备授权流**：支持在后台 OAuth 应用页直接设置 USTBL 共享客户端、设备码参数与默认回调占位地址，无需改配置文件或重启后端。
 * **可扩展部署**：默认推荐根路径部署，也支持前端子路径部署。
 
 > 注意：默认 Docker 方案会将后端 API 固定暴露在 `/skinapi/*` 下，以避免和前端 SPA 路由冲突。
@@ -79,15 +79,6 @@ server:
   site_url: "https://skin.example.com"
   api_url: "https://skin.example.com/skinapi"
 
-oauth:
-  jwks_kid: "main"
-  access_token_expires_in: 7200
-  refresh_token_expires_in: 2592000
-  device:
-    shared_client_id: "6"
-    expires_in: 900
-    interval: 5
-
 cors:
   allow_origins:
     - "https://skin.example.com"
@@ -104,7 +95,7 @@ mojang:
 
 > 注意：`server.site_url` 必须填写你实际访问站点的外部地址，`server.api_url` 必须填写对应的 `/skinapi` 地址，否则微软登录回调、材质地址和部分前端请求会异常。
 
-> 设备授权流要求 `oauth.device.shared_client_id` 指向一个已存在的 OAuth 应用 ID。你需要先在后台创建一个专供 USTBL 使用的 OAuth 应用，再把它的 `appid` 写回配置文件并重启后端。
+> USTBL 设备授权流的共享客户端、设备码有效期、轮询间隔和默认回调占位地址都在后台「OAuth 应用」页直接配置，保存后立即生效，不需要修改配置文件，也不需要重启后端。
 
 ### 使用 Docker Compose 启动
 
@@ -198,7 +189,7 @@ server {
 6. 登录后台后完成站点设置、邮件服务和注册策略配置。
 7. 检查 `config.yaml` 中的 `site_url` 与 `api_url` 是否已经替换为正式域名。
 8. 如需外部站点接入登录，进入后台的「OAuth 应用」页面创建应用并保存 `client_secret`。
-9. 如需 USTBL 设备授权登录，再创建一个专用 OAuth 应用，把它的 `appid` 写入 `oauth.device.shared_client_id`，然后重启后端。
+9. 如需 USTBL 设备授权登录，进入后台「OAuth 应用」页，点击“新增 USTBL 共享应用”或把已有应用设为“USTBL 共享客户端”。
 
 ### OAuth 2 对接说明
 
@@ -271,15 +262,16 @@ server {
 
 ### USTBL 设备授权流配置
 
-要给 USTBL 使用，请按下面方式配置：
+USTBL 的设备授权流已经做成后台可视化配置，正确流程是：
 
-1. 在后台「OAuth 应用」中新建一个专用应用。
-2. `redirect_uri` 可以填写任意合法静态地址，例如 `https://skin.example.com/device-complete`。
-3. 记下后台返回的 `appid`。
-4. 在 `config.yaml` 中设置 `oauth.device.shared_client_id: "该 appid"`。
-5. 重启后端。
+1. 打开后台的「OAuth 应用」页面。
+2. 点击“新增 USTBL 共享应用”，默认会创建一个名为 `USTBL` 的应用，并自动勾选“设为 USTBL 共享客户端”。
+3. 默认回调 URL 可以直接用 `https://oauth.ustb.world/`。
+4. 这个回调 URL 在设备授权流里不会被实际访问，也不会发生浏览器回调；它只需要是一个合法的 http(s) 地址，用来满足 OAuth 应用字段校验。
+5. 如果你已经有现成的 OAuth 应用，也可以在列表里直接点击“设为 USTBL”，把它指定为当前 shared client。
+6. 同一页面还可以设置设备码有效期和轮询间隔，保存后立即生效。
 
-重启后，USTBL 侧应使用以下地址：
+USTBL 侧使用以下地址：
 
 * Yggdrasil 根接口：`https://你的域名/skinapi/`
 * OpenID 配置：`https://你的域名/skinapi/.well-known/openid-configuration`
@@ -287,6 +279,8 @@ server {
 * Token 端点：`https://你的域名/skinapi/oauth/token`
 * JWKS 端点：`https://你的域名/skinapi/oauth/jwks`
 * 浏览器授权页：`https://你的域名/device`
+
+USTBL 侧 `client_id` 不需要你在外部手填固定值，启动器会从 OpenID 配置中的 `shared_client_id` 读取；而这个值由后台「OAuth 应用」页当前选中的“USTBL 共享客户端”自动决定。
 
 USTBL 推荐 scope：
 
@@ -308,6 +302,12 @@ USTBL 推荐 scope：
 * `selectedProfile`
 
 `selectedProfile` 会优先取最近一次 Yggdrasil 登录选中的角色；没有最近选中角色时，回退到该账号第一个有皮肤的角色，再回退到第一个角色。因此如果账号下没有任何角色，设备授权页会拒绝批准该请求。
+
+补充说明：
+
+* USTBL 的设备授权流不是授权码回调模式，所以这里的 `redirect_uri` 不会被使用。
+* 对 USTBL 来说，`https://oauth.ustb.world/` 这种固定地址足够了；它不需要可访问，也不要求是你的域名。
+* 只有你要给普通网站做授权码登录时，回调 URL 才必须是真实可访问、并且由对方站点处理的地址。
 
 ## 本地开发与贡献
 
