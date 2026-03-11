@@ -19,7 +19,6 @@ import AdminSettings from '@/components/admin/AdminSettings.vue'
 import AdminUserList from '@/components/admin/AdminUserList.vue'
 import AdminInviteList from '@/components/admin/AdminInviteList.vue'
 import AdminMojang from '@/components/admin/AdminMojang.vue'
-import AdminCarousel from '@/components/admin/AdminCarousel.vue'
 import AdminEmail from '@/components/admin/AdminEmail.vue'
 import AdminOAuthApps from '@/components/admin/AdminOAuthApps.vue'
 
@@ -79,7 +78,7 @@ const router = createRouter({
         {
           path: 'carousel',
           name: 'admin-carousel',
-          component: AdminCarousel,
+          redirect: '/admin/settings',
         },
         {
           path: 'oauth-apps',

@@ -314,6 +314,7 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
 
         return {
             "site_name": settings.get("site_name", "皮肤站"),
+            "site_logo": settings.get("site_logo", ""),
             "site_subtitle": settings.get("site_subtitle", "简洁、高效、现代的 Minecraft 皮肤管理站"),
             "allow_register": settings.get("allow_register", "true") == "true",
             "enable_skin_library": settings.get("enable_skin_library", "true") == "true",

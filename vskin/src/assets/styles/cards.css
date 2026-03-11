@@ -24,7 +24,7 @@
 .stats-card-icon {
   width: 64px;
   height: 64px;
-  border-radius: 14px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,6 +50,9 @@
   color: var(--color-heading);
 }
 
-/* Gradients for icons */
-.bg-gradient-blue { background: linear-gradient(135deg, #409eff, #337ecc); }
-.bg-gradient-purple { background: linear-gradient(135deg, #78a9d0, #547ea8); }
+/* Flat icon backgrounds */
+.bg-gradient-blue { background: #2f78ba; }
+.bg-gradient-purple { background: #5d7fa6; }
+
+html.dark .bg-gradient-blue { background: #285e8d; }
+html.dark .bg-gradient-purple { background: #4b6786; }

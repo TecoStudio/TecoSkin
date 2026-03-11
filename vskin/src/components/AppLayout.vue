@@ -3,7 +3,10 @@
     <el-header class="layout-header-wrap" v-if="!isAuthPage">
       <div class="layout-header">
         <!-- Logo -->
-        <div class="logo" @click="go('/')">{{ siteName }}</div>
+        <div class="logo" @click="go('/')">
+          <img v-if="siteLogoUrl" :src="siteLogoUrl" alt="site logo" class="site-logo-image" />
+          <span>{{ siteName }}</span>
+        </div>
 
         <!-- Desktop Navigation -->
         <div class="desktop-nav">
@@ -139,6 +142,7 @@ const { push } = useRouter()
 const isHome = computed(() => route.path === '/')
 const isAuthPage = computed(() => ['/login', '/register', '/reset-password', '/oauth/authorize'].includes(route.path))
 const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
+const siteLogo = ref(localStorage.getItem('site_logo_cache') || '')
 const enableSkinLibrary = ref(localStorage.getItem('enable_skin_library_cache') === 'true' || localStorage.getItem('enable_skin_library_cache') === null)
 const jwtToken = ref(localStorage.getItem('jwt') || '')
 const user = ref(null)
@@ -150,6 +154,7 @@ const filingMps = ref('')
 const filingMpsLink = ref('')
 const footerHeight = ref(0)
 const footerRef = ref(null)
+const siteLogoUrl = computed(() => normalizeAssetUrl(siteLogo.value))
 
 const updateFooterHeight = () => {
   nextTick(() => {
@@ -202,7 +207,6 @@ const adminNavLinks = [
   { path: '/admin/email', title: '邮件服务', icon: Message },
   { path: '/admin/oauth-apps', title: 'OAuth 应用', icon: Link },
   { path: '/admin/mojang', title: 'Fallback 服务', icon: Link },
-  { path: '/admin/carousel', title: '首页图片', icon: Picture },
 ]
 
 const navLinks = computed(() => {
@@ -251,6 +255,30 @@ let authTimer = null
 let resizeObserver = null
 
 function go(path) { push(path); drawer.value = false; }
+
+function normalizeAssetUrl(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw
+  if (raw.startsWith('/')) return raw
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}${raw}`.replace(/([^:]\/)\/+/g, '$1')
+}
+
+function applyFavicon(value) {
+  const href = normalizeAssetUrl(value)
+  const existing = document.querySelector("link[rel='icon']") || document.querySelector("link[rel='shortcut icon']")
+  if (!href) return
+  if (existing) {
+    existing.setAttribute('href', href)
+    return
+  }
+  const link = document.createElement('link')
+  link.setAttribute('rel', 'icon')
+  link.setAttribute('href', href)
+  document.head.appendChild(link)
+}
+
 function logout() {
   localStorage.removeItem('jwt'); localStorage.removeItem('accessToken');
   jwtToken.value = ''; user.value = null; push('/');
@@ -285,6 +313,11 @@ onMounted(async () => {
     if (res.data.site_name) {
       siteName.value = res.data.site_name
       localStorage.setItem('site_name_cache', res.data.site_name); document.title = res.data.site_name;
+    }
+    if (res.data.site_logo !== undefined) {
+      siteLogo.value = res.data.site_logo || ''
+      localStorage.setItem('site_logo_cache', siteLogo.value)
+      applyFavicon(siteLogo.value)
     }
     if (res.data.enable_skin_library !== undefined) {
       enableSkinLibrary.value = res.data.enable_skin_library
@@ -369,6 +402,16 @@ onUnmounted(() => {
   color: inherit !important;
 }
 
+html.dark .is-home-layout .layout-header .account-trigger:hover,
+html.dark .is-home-layout .layout-header .logo:hover,
+html.dark .is-home-layout .layout-header .theme-toggle:hover,
+html.dark .is-home-layout .layout-header .mobile-menu-btn:hover,
+html.dark .is-home-layout .layout-header :deep(.el-menu-item:hover),
+html.dark .is-home-layout .layout-header :deep(.el-menu-item.is-active) {
+  background-color: #27313c !important;
+  color: #eaf4ff !important;
+}
+
 .is-home-layout .header-actions :deep(.el-button--primary) {
   background: linear-gradient(180deg, #4f9ad8 0%, #3e86c8 100%) !important;
   border: 1px solid #458ecf !important;
@@ -408,6 +451,16 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 4px 12px;
   transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-logo-image {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logo:hover {

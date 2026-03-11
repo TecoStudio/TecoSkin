@@ -56,6 +56,22 @@
             </el-form-item>
           </el-col>
         </el-row>
+                <el-row :gutter="20">
+                  <el-col :xs="24" :sm="16">
+                    <el-form-item label="站点 Logo / Icon 地址">
+                      <el-input v-model="settings.site.site_logo" placeholder="支持在线 URL 或站内相对路径，例如 /static/logo.png" />
+                      <p class="hint-text">该图片将同时用于浏览器图标和菜单栏左上角 Logo，仅影响菜单栏，不影响首页主体。</p>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :xs="24" :sm="8">
+                    <el-form-item label="Logo 预览">
+                      <div class="site-logo-preview" :class="{ empty: !resolvedSiteLogo }">
+                        <img v-if="resolvedSiteLogo" :src="resolvedSiteLogo" alt="site logo preview" />
+                        <span v-else>未设置</span>
+                      </div>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="站点副标题">
@@ -103,6 +119,18 @@
           </el-col>
         </el-row>
       </el-form>
+    </el-card>
+
+    <el-card class="surface-card mb-6" shadow="never">
+      <template #header>
+        <div class="card-header-flex">
+          <div class="title-group">
+            <el-icon><PictureFilled /></el-icon>
+            <span>首页图片</span>
+          </div>
+        </div>
+      </template>
+      <AdminCarousel embedded />
     </el-card>
 
     <!-- Security Config -->
@@ -187,16 +215,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import AdminCarousel from './AdminCarousel.vue'
 import { 
-  Refresh, Setting, Monitor, Lock, Key, Link 
+  Refresh, Setting, Monitor, Lock, Key, Link, PictureFilled 
 } from '@element-plus/icons-vue'
 
 const settings = reactive({
   site: {
     site_name: '',
+    site_logo: '',
     site_subtitle: '',
     require_invite: false,
     allow_register: true,
@@ -232,8 +262,18 @@ const saving = reactive({
 })
 
 const regulatoryCollapse = ref([])
+const resolvedSiteLogo = computed(() => resolveSiteLogo(settings.site.site_logo))
 
 const authHeaders = () => ({ Authorization: 'Bearer ' + localStorage.getItem('jwt') })
+
+function resolveSiteLogo(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw
+  if (raw.startsWith('/')) return raw
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}${raw}`.replace(/([^:]\/)\/+/g, '$1')
+}
 
 async function loadGroup(group) {
   try {
@@ -300,4 +340,27 @@ onMounted(loadAllSettings)
 .hint-text { font-size: 12px; color: var(--color-text-light); line-height: 1.5; margin-top: 4px; display: block; }
 .mb-6 { margin-bottom: 24px; }
 .ml-4 { margin-left: 16px; }
+
+.site-logo-preview {
+  width: 100%;
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.site-logo-preview img {
+  max-width: 100%;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+.site-logo-preview.empty {
+  color: var(--color-text-light);
+  font-size: 13px;
+}
 </style>

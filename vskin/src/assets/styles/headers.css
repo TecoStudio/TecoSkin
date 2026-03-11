@@ -23,14 +23,20 @@
   height: 50px;
   font-size: 23px;
   color: #3a78aa;
-  background: linear-gradient(180deg, #e7f2fb 0%, #d9ecfb 100%);
-  border: 1px solid #c9dff1;
-  border-radius: 14px;
+  background: #eaf0f6;
+  border: 1px solid #d7e0ea;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: var(--transition-base);
+}
+
+html.dark .page-header-icon {
+  color: #b9d4f0;
+  background: #232a33;
+  border-color: #303946;
 }
 
 .page-header-text {

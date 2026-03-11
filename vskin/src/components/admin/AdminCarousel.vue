@@ -1,6 +1,6 @@
 <template>
-  <div class="admin-carousel animate-fade-in">
-    <div class="page-header">
+  <div class="admin-carousel animate-fade-in" :class="{ embedded }">
+    <div v-if="!embedded" class="page-header">
       <div class="page-header-content">
         <div class="page-header-icon"><PictureFilled /></div>
         <div class="page-header-text">
@@ -21,6 +21,7 @@
     </div>
 
     <el-alert
+      v-if="!embedded"
       title="配置建议"
       type="success"
       description="系统会自动循环展示所有上传的图片。为保证视觉效果，请确保图片比例一致（推荐 16:9），且文件大小不超过设置的上限。"
@@ -56,6 +57,13 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, PictureFilled, Upload } from '@element-plus/icons-vue'
+
+defineProps({
+  embedded: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 const carouselImages = ref([])
 const loading = ref(false)
@@ -117,6 +125,7 @@ onMounted(fetchCarousel)
 @import "@/assets/styles/buttons.css";
 
 .admin-carousel { max-width: 1000px; margin: 0 auto; padding: 20px 0; }
+.admin-carousel.embedded { max-width: none; margin: 0; padding: 0; }
 
 .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 .carousel-item-card { overflow: hidden; }
