@@ -311,9 +311,11 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
         settings = await db.setting.get_all()
         fallbacks = await site_backend.get_fallback_services()
         primary = fallbacks[0] if fallbacks else None
+        site_name = settings.get("site_name", "皮肤站")
 
         return {
-            "site_name": settings.get("site_name", "皮肤站"),
+            "site_name": site_name,
+            "site_title": settings.get("site_title", site_name),
             "site_logo": settings.get("site_logo", ""),
             "site_subtitle": settings.get("site_subtitle", "简洁、高效、现代的 Minecraft 皮肤管理站"),
             "allow_register": settings.get("allow_register", "true") == "true",

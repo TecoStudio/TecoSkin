@@ -1,13 +1,6 @@
 """管理员模块路由"""
 
-from fastapi import (
-    APIRouter,
-    HTTPException,
-    Depends,
-    Body,
-    UploadFile,
-    File,
-)
+from fastapi import APIRouter, HTTPException, Depends, Body, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 import uuid
@@ -215,6 +208,18 @@ def setup_routes(db: Database, admin_backend, oauth_backend, rate_limiter, confi
         filename = f"{uuid.uuid4().hex}{ext}"
         content = await file.read()
         return await admin_backend.upload_carousel_image(filename, content)
+
+    @router.post("/admin/site-logo")
+    async def upload_site_logo(
+        file: UploadFile = File(...),
+        payload: dict = Depends(admin_required)
+    ):
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in [".png", ".jpg", ".jpeg", ".webp", ".ico", ".svg"]:
+            raise HTTPException(status_code=400, detail="Unsupported file format")
+
+        content = await file.read()
+        return await admin_backend.upload_site_logo(file.filename, content)
 
     @router.delete("/admin/carousel/{filename}")
     async def delete_carousel(filename: str, payload: dict = Depends(admin_required)):

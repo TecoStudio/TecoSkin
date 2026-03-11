@@ -412,6 +412,12 @@ class Database(BaseDB):
             await conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES ('enable_skin_library', 'true')"
             )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('site_title', '皮肤站')"
+            )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('home_image_urls', '')"
+            )
 
             # SMTP Default Settings
             await conn.execute(

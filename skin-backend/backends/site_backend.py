@@ -463,17 +463,21 @@ class SiteBackend:
 
     async def list_carousel_images(self) -> List[str]:
         directory = self.config.get("carousel.directory", "carousel")
-        if not os.path.exists(directory):
-            return []
-
-        # List files and filter for images
-        files = os.listdir(directory)
-        images = [
-            f for f in files if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
-        ]
-        # Sort by name (or could be by mtime)
+        images: list[str] = []
+        if os.path.exists(directory):
+            files = os.listdir(directory)
+            images = [
+                f for f in files if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+            ]
         images.sort()
-        return images
+
+        external_urls_raw = await self.db.setting.get("home_image_urls", "")
+        external_urls = [
+            line.strip()
+            for line in str(external_urls_raw or "").splitlines()
+            if line.strip()
+        ]
+        return [*external_urls, *images]
     
     async def get_fallback_services(self) -> list[dict]:
         return await self.db.fallback.list_endpoints()

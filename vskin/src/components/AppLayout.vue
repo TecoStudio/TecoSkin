@@ -5,7 +5,7 @@
         <!-- Logo -->
         <div class="logo" @click="go('/')">
           <img v-if="siteLogoUrl" :src="siteLogoUrl" alt="site logo" class="site-logo-image" />
-          <span>{{ siteName }}</span>
+          <span>{{ siteTitle }}</span>
         </div>
 
         <!-- Desktop Navigation -->
@@ -142,6 +142,7 @@ const { push } = useRouter()
 const isHome = computed(() => route.path === '/')
 const isAuthPage = computed(() => ['/login', '/register', '/reset-password', '/oauth/authorize'].includes(route.path))
 const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
+const siteTitle = ref(localStorage.getItem('site_title_cache') || localStorage.getItem('site_name_cache') || '皮肤站')
 const siteLogo = ref(localStorage.getItem('site_logo_cache') || '')
 const enableSkinLibrary = ref(localStorage.getItem('enable_skin_library_cache') === 'true' || localStorage.getItem('enable_skin_library_cache') === null)
 const jwtToken = ref(localStorage.getItem('jwt') || '')
@@ -279,6 +280,15 @@ function applyFavicon(value) {
   document.head.appendChild(link)
 }
 
+function syncSiteBranding() {
+  siteName.value = localStorage.getItem('site_name_cache') || '皮肤站'
+  siteTitle.value = localStorage.getItem('site_title_cache') || siteName.value
+  siteLogo.value = localStorage.getItem('site_logo_cache') || ''
+  footerText.value = localStorage.getItem('site_footer_text_cache') || footerText.value
+  document.title = siteName.value
+  applyFavicon(siteLogo.value)
+}
+
 function logout() {
   localStorage.removeItem('jwt'); localStorage.removeItem('accessToken');
   jwtToken.value = ''; user.value = null; push('/');
@@ -314,6 +324,8 @@ onMounted(async () => {
       siteName.value = res.data.site_name
       localStorage.setItem('site_name_cache', res.data.site_name); document.title = res.data.site_name;
     }
+    siteTitle.value = res.data.site_title || res.data.site_name || siteName.value
+    localStorage.setItem('site_title_cache', siteTitle.value)
     if (res.data.site_logo !== undefined) {
       siteLogo.value = res.data.site_logo || ''
       localStorage.setItem('site_logo_cache', siteLogo.value)
@@ -323,7 +335,10 @@ onMounted(async () => {
       enableSkinLibrary.value = res.data.enable_skin_library
       localStorage.setItem('enable_skin_library_cache', res.data.enable_skin_library.toString())
     }
-    if (res.data.footer_text !== undefined) footerText.value = res.data.footer_text
+    if (res.data.footer_text !== undefined) {
+      footerText.value = res.data.footer_text
+      localStorage.setItem('site_footer_text_cache', footerText.value)
+    }
     if (res.data.filing_icp !== undefined) filingIcp.value = res.data.filing_icp
     if (res.data.filing_icp_link !== undefined) filingIcpLink.value = res.data.filing_icp_link
     if (res.data.filing_mps !== undefined) filingMps.value = res.data.filing_mps
@@ -333,6 +348,7 @@ onMounted(async () => {
 
   await fetchMe()
   window.addEventListener('storage', checkAuth)
+  window.addEventListener('site-settings-updated', syncSiteBranding)
   authTimer = setInterval(checkAuth, 1000)
 
   if (window.ResizeObserver) {
@@ -345,6 +361,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (authTimer) clearInterval(authTimer)
   window.removeEventListener('storage', checkAuth)
+  window.removeEventListener('site-settings-updated', syncSiteBranding)
   window.removeEventListener('resize', updateFooterHeight)
   if (resizeObserver) resizeObserver.disconnect()
 })

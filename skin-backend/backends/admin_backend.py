@@ -3,6 +3,7 @@ import time
 import secrets
 import os
 import re
+import uuid
 from fastapi import HTTPException
 
 from utils.typing import InviteCode
@@ -25,8 +26,10 @@ class AdminBackend:
         s = await self.db.setting.get_all()
         return {
             "site_name": s.get("site_name", "皮肤站"),
+            "site_title": s.get("site_title", s.get("site_name", "皮肤站")),
             "site_logo": s.get("site_logo", ""),
             "site_subtitle": s.get("site_subtitle", "简洁、高效、现代的 Minecraft 皮肤管理站"),
+            "home_image_urls": s.get("home_image_urls", ""),
             "require_invite": s.get("require_invite", "false") == "true",
             "allow_register": s.get("allow_register", "true") == "true",
             "enable_skin_library": s.get("enable_skin_library", "true") == "true",
@@ -84,8 +87,10 @@ class AdminBackend:
         allowed_keys = {
             "site": [
                 "site_name",
+                "site_title",
                 "site_logo",
                 "site_subtitle",
+                "home_image_urls",
                 "require_invite",
                 "allow_register",
                 "enable_skin_library",
@@ -118,6 +123,19 @@ class AdminBackend:
                 # Special handling for password
                 if key == "smtp_password" and not val:
                     continue
+
+                if key == "site_title":
+                    val = str(val or "").strip() or str(body.get("site_name") or "").strip() or "皮肤站"
+
+                if key == "home_image_urls":
+                    if isinstance(val, list):
+                        val = "\n".join(str(item).strip() for item in val if str(item).strip())
+                    else:
+                        val = "\n".join(
+                            line.strip()
+                            for line in str(val or "").splitlines()
+                            if line.strip()
+                        )
                 
                 value = "true" if isinstance(val, bool) and val else ("false" if isinstance(val, bool) else str(val))
                 await self.db.setting.set(key, value)
@@ -297,6 +315,32 @@ class AdminBackend:
         with open(os.path.join(directory, filename), "wb") as f:
             f.write(content)
         return {"filename": filename}
+
+    async def upload_site_logo(self, original_filename: str, content: bytes):
+        extension = os.path.splitext(original_filename)[1].lower()
+        if extension not in [".png", ".jpg", ".jpeg", ".webp", ".ico", ".svg"]:
+            raise HTTPException(status_code=400, detail="Unsupported file format")
+
+        directory = self.config.get("textures.directory", "textures")
+        os.makedirs(directory, exist_ok=True)
+
+        previous_logo = await self.db.setting.get("site_logo", "")
+        filename = f"site-logo-{uuid.uuid4().hex}{extension}"
+        with open(os.path.join(directory, filename), "wb") as f:
+            f.write(content)
+
+        await self.db.setting.set("site_logo", f"/static/textures/{filename}")
+
+        if previous_logo.startswith("/static/textures/site-logo-"):
+            previous_name = os.path.basename(previous_logo)
+            previous_path = os.path.join(directory, previous_name)
+            if os.path.dirname(os.path.abspath(previous_path)) == os.path.abspath(directory) and os.path.exists(previous_path):
+                try:
+                    os.remove(previous_path)
+                except OSError:
+                    pass
+
+        return {"path": f"/static/textures/{filename}"}
 
     async def delete_carousel_image(self, filename: str):
         directory = self.config.get("carousel.directory", "carousel")

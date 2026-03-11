@@ -49,29 +49,48 @@
           <el-input-number v-model="settings.site.max_texture_size" :min="64" :step="128" />
         </el-form-item>
         <el-divider />
-                <el-row :gutter="20">
+        <el-row :gutter="20">
           <el-col :span="24">
-            <el-form-item label="站点名称">
-              <el-input v-model="settings.site.site_name" placeholder="皮肤站" />
+            <el-form-item label="站点标题">
+              <el-input v-model="settings.site.site_title" placeholder="用于左上角品牌区和首页主标题" />
+              <p class="hint-text">站点标题用于站内主视觉展示，建议保持简短醒目。</p>
             </el-form-item>
           </el-col>
         </el-row>
-                <el-row :gutter="20">
-                  <el-col :xs="24" :sm="16">
-                    <el-form-item label="站点 Logo / Icon 地址">
-                      <el-input v-model="settings.site.site_logo" placeholder="支持在线 URL 或站内相对路径，例如 /static/logo.png" />
-                      <p class="hint-text">该图片将同时用于浏览器图标和菜单栏左上角 Logo，仅影响菜单栏，不影响首页主体。</p>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :xs="24" :sm="8">
-                    <el-form-item label="Logo 预览">
-                      <div class="site-logo-preview" :class="{ empty: !resolvedSiteLogo }">
-                        <img v-if="resolvedSiteLogo" :src="resolvedSiteLogo" alt="site logo preview" />
-                        <span v-else>未设置</span>
-                      </div>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="站点名称">
+              <el-input v-model="settings.site.site_name" placeholder="皮肤站" />
+              <p class="hint-text">站点名称用于浏览器标签页标题以及部分对外元信息。</p>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="16">
+            <el-form-item label="站点 Logo / Icon 地址">
+              <div class="upload-row">
+                <el-input v-model="settings.site.site_logo" placeholder="支持在线 URL 或站内相对路径，例如 /static/textures/site-logo.png" />
+                <el-upload
+                  action="#"
+                  :http-request="uploadSiteLogo"
+                  :show-file-list="false"
+                  accept=".png,.jpg,.jpeg,.webp,.ico,.svg"
+                >
+                  <el-button type="primary" :icon="Upload" :loading="uploadingLogo">上传图片</el-button>
+                </el-upload>
+              </div>
+              <p class="hint-text">该图片同时用于浏览器图标和菜单栏左上角 Logo。可直接填写 URL，也可点击上传到站内。</p>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="8">
+            <el-form-item label="Logo 预览">
+              <div class="site-logo-preview" :class="{ empty: !resolvedSiteLogo }">
+                <img v-if="resolvedSiteLogo" :src="resolvedSiteLogo" alt="site logo preview" />
+                <span v-else>未设置</span>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="站点副标题">
@@ -128,8 +147,20 @@
             <el-icon><PictureFilled /></el-icon>
             <span>首页图片</span>
           </div>
+          <el-button type="primary" size="small" @click="saveGroup('site')" :loading="saving.site">保存</el-button>
         </div>
       </template>
+      <el-form label-position="top" :model="settings.site" class="mb-4">
+        <el-form-item label="外链图片 URL">
+          <el-input
+            v-model="settings.site.home_image_urls"
+            type="textarea"
+            :rows="4"
+            placeholder="每行一张图片地址，支持 https://example.com/banner.webp"
+          />
+          <p class="hint-text">这里配置外部图片地址；下方图库则用于上传站内图片。首页会按配置顺序先展示外链，再展示站内图片。</p>
+        </el-form-item>
+      </el-form>
       <AdminCarousel embedded />
     </el-card>
 
@@ -220,14 +251,16 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import AdminCarousel from './AdminCarousel.vue'
 import { 
-  Refresh, Setting, Monitor, Lock, Key, Link, PictureFilled 
+  Refresh, Setting, Monitor, Lock, Key, Link, PictureFilled, Upload
 } from '@element-plus/icons-vue'
 
 const settings = reactive({
   site: {
     site_name: '',
+    site_title: '',
     site_logo: '',
     site_subtitle: '',
+    home_image_urls: '',
     require_invite: false,
     allow_register: true,
     enable_skin_library: true,
@@ -262,6 +295,7 @@ const saving = reactive({
 })
 
 const regulatoryCollapse = ref([])
+const uploadingLogo = ref(false)
 const resolvedSiteLogo = computed(() => resolveSiteLogo(settings.site.site_logo))
 
 const authHeaders = () => ({ Authorization: 'Bearer ' + localStorage.getItem('jwt') })
@@ -293,10 +327,37 @@ async function loadAllSettings() {
   ])
 }
 
+function broadcastSiteSettings() {
+  localStorage.setItem('site_name_cache', settings.site.site_name || '皮肤站')
+  localStorage.setItem('site_title_cache', settings.site.site_title || settings.site.site_name || '皮肤站')
+  localStorage.setItem('site_logo_cache', settings.site.site_logo || '')
+  localStorage.setItem('site_subtitle_cache', settings.site.site_subtitle || '')
+  window.dispatchEvent(new CustomEvent('site-settings-updated'))
+}
+
+async function uploadSiteLogo({ file }) {
+  const formData = new FormData()
+  formData.append('file', file)
+  uploadingLogo.value = true
+  try {
+    const res = await axios.post('/admin/site-logo', formData, {
+      headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' }
+    })
+    settings.site.site_logo = res.data.path || ''
+    broadcastSiteSettings()
+    ElMessage.success('Logo 上传成功')
+  } catch (e) {
+    ElMessage.error(e.response?.data?.detail || 'Logo 上传失败')
+  } finally {
+    uploadingLogo.value = false
+  }
+}
+
 async function saveGroup(group) {
   saving[group] = true
   try {
     await axios.post(`/admin/settings/${group}`, settings[group], { headers: authHeaders() })
+    if (group === 'site') broadcastSiteSettings()
     ElMessage.success('设置已更新')
     if (group === 'microsoft') {
        settings.microsoft.microsoft_client_secret = '' // Clear local secret field
@@ -338,8 +399,23 @@ onMounted(loadAllSettings)
 }
 
 .hint-text { font-size: 12px; color: var(--color-text-light); line-height: 1.5; margin-top: 4px; display: block; }
+.mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .ml-4 { margin-left: 16px; }
+
+.upload-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-row :deep(.el-upload) {
+  flex: 0 0 auto;
+}
+
+.upload-row :deep(.el-input) {
+  flex: 1 1 auto;
+}
 
 .site-logo-preview {
   width: 100%;
@@ -362,5 +438,12 @@ onMounted(loadAllSettings)
 .site-logo-preview.empty {
   color: var(--color-text-light);
   font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .upload-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

@@ -20,6 +20,21 @@
       </div>
     </div>
 
+    <div v-else class="embedded-toolbar">
+      <div class="embedded-toolbar-text">
+        <strong>站内图片上传</strong>
+        <span>上传后的图片会参与首页轮播，可与上方外链图片同时使用。</span>
+      </div>
+      <el-upload
+        action="#"
+        :http-request="uploadCarousel"
+        :show-file-list="false"
+        accept=".png,.jpg,.jpeg,.webp"
+      >
+        <el-button type="primary" :icon="Upload" class="hover-lift">上传图片</el-button>
+      </el-upload>
+    </div>
+
     <el-alert
       v-if="!embedded"
       title="配置建议"
@@ -56,7 +71,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, PictureFilled, Upload } from '@element-plus/icons-vue'
+import { Delete, PictureFilled, Upload } from '@element-plus/icons-vue'
 
 defineProps({
   embedded: {
@@ -71,15 +86,23 @@ const loading = ref(false)
 const authHeaders = () => ({ Authorization: 'Bearer ' + localStorage.getItem('jwt') })
 
 function getCarouselUrl(filename) {
+  if (/^(https?:)?\/\//i.test(filename) || filename.startsWith('data:') || filename.startsWith('/')) {
+    return filename
+  }
   const base = import.meta.env.BASE_URL
   return `${base}static/carousel/${filename}`.replace(/\/+/g, '/')
+}
+
+function isManagedLocalCarousel(item) {
+  const raw = String(item || '').trim()
+  return !!raw && !/^(https?:)?\/\//i.test(raw) && !raw.startsWith('data:') && !raw.startsWith('/')
 }
 
 async function fetchCarousel() {
   loading.value = true
   try {
     const res = await axios.get('/public/carousel')
-    carouselImages.value = res.data.map(f => ({ filename: f }))
+    carouselImages.value = res.data.filter(isManagedLocalCarousel).map(f => ({ filename: f }))
   } catch (e) {
     ElMessage.error('获取图片列表失败')
   } finally {
@@ -127,6 +150,27 @@ onMounted(fetchCarousel)
 .admin-carousel { max-width: 1000px; margin: 0 auto; padding: 20px 0; }
 .admin-carousel.embedded { max-width: none; margin: 0; padding: 0; }
 
+.embedded-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.embedded-toolbar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.embedded-toolbar-text strong {
+  color: var(--color-heading);
+  font-size: 14px;
+}
+
 .carousel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 .carousel-item-card { overflow: hidden; }
 
@@ -138,6 +182,7 @@ onMounted(fetchCarousel)
 .mb-6 { margin-bottom: 24px; }
 
 @media (max-width: 768px) {
+  .embedded-toolbar { flex-direction: column; align-items: stretch; }
   .carousel-grid { grid-template-columns: 1fr; }
 }
 </style>

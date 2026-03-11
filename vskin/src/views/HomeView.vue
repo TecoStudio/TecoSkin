@@ -6,7 +6,7 @@ import axios from 'axios'
 
 const router = useRouter()
 const user = inject('user', ref(null))
-const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
+const siteTitle = ref(localStorage.getItem('site_title_cache') || localStorage.getItem('site_name_cache') || '皮肤站')
 const siteSubtitle = ref(localStorage.getItem('site_subtitle_cache') || '简洁、高效、现代的 Minecraft 皮肤管理站')
 const isLogged = computed(() => !!user.value || !!localStorage.getItem('jwt'))
 const carouselCacheKey = 'home_carousel_cache_v1'
@@ -28,9 +28,10 @@ onMounted(async () => {
   try {
     const res = await axios.get('/public/settings')
     if (res.data.site_name) {
-      siteName.value = res.data.site_name
       localStorage.setItem('site_name_cache', res.data.site_name)
     }
+    siteTitle.value = res.data.site_title || res.data.site_name || siteTitle.value
+    localStorage.setItem('site_title_cache', siteTitle.value)
     if (res.data.site_subtitle) {
       siteSubtitle.value = res.data.site_subtitle
       localStorage.setItem('site_subtitle_cache', res.data.site_subtitle)
@@ -55,8 +56,12 @@ function goLogin() { router.push('/login') }
 function goRegister() { router.push('/register') }
 
 function getCarouselUrl(filename) {
+  const raw = String(filename || '').trim()
+  if (!raw) return ''
+  if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw
+  if (raw.startsWith('/')) return raw
   const base = import.meta.env.BASE_URL
-  return `${base}static/carousel/${filename}`.replace(/\/+/g, '/')
+  return `${base}static/carousel/${raw}`.replace(/\/+/g, '/')
 }
 </script>
 
@@ -78,7 +83,7 @@ function getCarouselUrl(filename) {
     <!-- Main Content -->
     <div class="hero-section">
       <div class="hero-content animate-fade-in">
-        <h1 class="hero-title">{{ siteName }}</h1>
+        <h1 class="hero-title">{{ siteTitle }}</h1>
         <p class="hero-subtitle">{{ siteSubtitle }}</p>
         <div class="hero-actions">
           <el-button v-if="isLogged" size="large" @click="goDashboard" class="btn-glass btn-glass-primary hero-btn">
