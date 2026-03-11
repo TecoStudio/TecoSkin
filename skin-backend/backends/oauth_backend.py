@@ -72,8 +72,13 @@ class OAuthBackend:
         return " ".join(result), result
 
     def _scope_items(self, scopes: list[str]) -> list[dict]:
+        # userinfo 已包含用户名与头像读取能力，授权页不重复展示 profile/avatar。
+        display_scopes = list(scopes)
+        if "userinfo" in display_scopes:
+            display_scopes = [x for x in display_scopes if x not in {"profile", "avatar"}]
+
         items = []
-        for key in scopes:
+        for key in display_scopes:
             meta = self.SUPPORTED_SCOPES.get(key, {})
             items.append(
                 {

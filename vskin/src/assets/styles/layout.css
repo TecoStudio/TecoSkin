@@ -4,24 +4,23 @@
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 40px;
+  align-items: center;
+  margin-bottom: 26px;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 14px;
 }
 
 .page-header-content h1 {
-  font-size: 32px;
-  margin: 0 0 8px 0;
-  background: linear-gradient(135deg, var(--color-heading) 0%, #409eff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 30px;
+  font-weight: 760;
+  margin: 0 0 6px 0;
+  color: var(--color-heading);
 }
 
 .page-header-content p {
   margin: 0;
   color: var(--color-text-light);
-  font-size: 16px;
+  font-size: 14px;
   transition: color 0.3s ease;
 }
 
@@ -33,22 +32,22 @@
 .auto-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 240px);
-  gap: 24px;
+  gap: 18px;
 }
 
 /* 2. Standard Joined Radio Group (Filters) */
 .capsule-radio .el-radio-button__inner {
-  background: var(--color-card-background);
+  background: #eef1f6;
   color: var(--color-text);
-  border: 1px solid var(--color-border) !important;
+  border: 1px solid #d8dfe9 !important;
   font-weight: 500;
   transition: var(--transition-base);
 }
 
 .capsule-radio .el-radio-button.is-active .el-radio-button__inner {
-  background-color: var(--el-color-primary) !important;
-  border-color: var(--el-color-primary) !important;
-  color: #fff !important;
+  background-color: #d7ecfd !important;
+  border-color: #9fc8ea !important;
+  color: #245b88 !important;
 }
 
 /* 3. Modern Segmented Radio (Action selection) */
@@ -59,28 +58,28 @@
   padding: 0 30px;
   border-radius: 8px !important;
   margin-right: 12px;
-  border: 1px solid var(--color-border) !important;
-  background: var(--color-card-background);
+  border: 1px solid #d8dfe9 !important;
+  background: #eef1f6;
   color: var(--color-text);
   box-shadow: none !important;
   transition: var(--transition-base);
 }
 
 .modern-radio .el-radio-button.is-active .el-radio-button__inner {
-  background-color: rgba(64, 158, 255, 0.1) !important;
-  color: var(--el-color-primary) !important;
-  border-color: var(--el-color-primary) !important;
+  background-color: #d7ecfd !important;
+  color: #245b88 !important;
+  border-color: #9fc8ea !important;
 }
 
 /* --- Dark Mode Absolute Fixes --- */
 html.dark .capsule-radio .el-radio-button__inner,
 html.dark .modern-radio .el-radio-button__inner {
-  background: #1d1d1d !important; /* Force deep dark */
+  background: #2a3444 !important;
   color: var(--color-text);
   border-color: var(--color-border) !important;
 }
 
 html.dark .modern-radio .el-radio-button.is-active .el-radio-button__inner {
-  background-color: rgba(64, 158, 255, 0.2) !important;
-  color: #409eff !important;
+  background-color: #395577 !important;
+  color: #bfe0ff !important;
 }

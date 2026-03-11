@@ -6,7 +6,7 @@ import axios from 'axios'
 
 const router = useRouter()
 const siteName = ref(localStorage.getItem('site_name_cache') || '皮肤站')
-const siteSubtitle = ref(localStorage.getItem('site_subtitle_cache') || '简洁、高效、现代的 Minecraft 皮肤 management 站')
+const siteSubtitle = ref(localStorage.getItem('site_subtitle_cache') || '简洁、高效、现代的 Minecraft 皮肤管理站')
 const isLogged = ref(false)
 const carouselImages = ref([])
 
@@ -114,7 +114,7 @@ function getCarouselUrl(filename) {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0;
 }
 .hero-bg-fixed.is-gradient {
-  background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  background: radial-gradient(circle at 0% 0%, #d6e6f5 0%, #ecedf2 42%, #f8f8fb 100%);
 }
 
 .hero-bg-fixed :deep(.el-carousel) {
@@ -125,22 +125,53 @@ function getCarouselUrl(filename) {
 .carousel-img { width: 100%; height: 100%; object-fit: cover; }
 .carousel-overlay { 
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-  background: rgba(0, 0, 0, 0.45); 
+  background: linear-gradient(180deg, rgba(25, 50, 76, 0.32) 0%, rgba(39, 61, 85, 0.18) 40%, rgba(248, 250, 255, 0.42) 100%);
 }
 
 .hero-section {
-  position: relative; z-index: 1; flex: 1; display: flex; align-items: center; justify-content: center; color: #fff; padding: 0 20px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0 20px;
 }
 
-.hero-content { text-align: center; max-width: 800px; }
-.hero-title { font-size: 56px; font-weight: 800; margin: 0 0 16px 0; letter-spacing: -1.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-.hero-subtitle { font-size: 20px; margin: 0 0 32px 0; opacity: 0.95; font-weight: 400; }
+.hero-content {
+  text-align: center;
+  max-width: 860px;
+  border: 1px solid rgba(212, 224, 239, 0.92);
+  border-radius: 26px;
+  background: rgba(246, 250, 255, 0.75);
+  backdrop-filter: blur(10px);
+  padding: 40px 44px;
+  box-shadow: 0 22px 40px rgba(44, 71, 99, 0.18);
+}
+
+.hero-title {
+  font-size: 56px;
+  font-weight: 820;
+  margin: 0 0 12px 0;
+  letter-spacing: -1.5px;
+  color: #1f3f5d;
+  text-shadow: none;
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  margin: 0 0 30px 0;
+  color: #496887;
+  font-weight: 500;
+}
 
 .hero-actions { display: flex; gap: 16px; justify-content: center; }
 .hero-btn { height: 52px; padding: 0 36px; font-size: 16px; font-weight: 600; border-radius: 14px; }
 
 @media (max-width: 768px) {
   .hero-title { font-size: 36px; }
+  .hero-content { padding: 30px 24px; }
   .hero-actions { flex-direction: column; gap: 12px; }
   .hero-btn { width: 100%; }
 }

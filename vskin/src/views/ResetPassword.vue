@@ -1,6 +1,6 @@
 <template>
-  <div class="reset-container">
-    <div class="reset-card">
+  <div class="reset-container auth-shell">
+    <div class="reset-card auth-panel">
       <div class="reset-header">
         <h1>重置密码</h1>
         <p>输入您的邮箱并获取验证码以重置密码</p>
@@ -201,24 +201,11 @@ async function resetPassword() {
 
 <style scoped>
 .reset-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: var(--color-background-hero-light);
   transition: background 0.3s ease;
 }
 
 .reset-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-card-background);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.5s ease-out;
-  border: 1px solid var(--color-border);
 }
 
 @keyframes slideUp {
@@ -239,8 +226,8 @@ async function resetPassword() {
 
 .reset-header h1 {
   margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 760;
   color: var(--color-heading);
 }
 

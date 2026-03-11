@@ -99,9 +99,13 @@
 /* 2. Standard Variant: Flow with card background */
 .footer-standard {
   border-top: 1px solid var(--color-border);
-  background: var(--color-card-background);
+  background: rgba(248, 249, 252, 0.9);
   color: var(--color-text-light);
   padding: 8px 20px !important; /* Tight padding for content focus */
+}
+
+html.dark .footer-standard {
+  background: rgba(39, 49, 63, 0.9);
 }
 
 

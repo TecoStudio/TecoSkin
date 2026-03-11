@@ -17,17 +17,11 @@ body {
     background-color 0.5s;
   line-height: 1.6;
   font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
+    'HarmonyOS Sans SC',
+    'Microsoft YaHei UI',
+    'PingFang SC',
+    'Segoe UI Variable',
     'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
     sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;
@@ -35,7 +29,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global Dark Mode Backgrounds for Auth & Home Hero */
 html.dark .login-container,
 html.dark .register-container,
 html.dark .reset-container,
@@ -43,7 +36,45 @@ html.dark .hero-gradient-bg {
   background: var(--color-background-hero-dark);
 }
 
-/* Shared Utilities */
+* {
+  scrollbar-color: #bac6d5 transparent;
+}
+
+/* Element Plus 全局覆写：启动器风格 */
+.el-button {
+  border-radius: 10px !important;
+  font-weight: 600;
+}
+
+.el-button--primary {
+  background: linear-gradient(180deg, #7eb7df 0%, #5ea2d1 100%) !important;
+  border-color: #67a8d5 !important;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: 10px !important;
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
+  background: var(--color-card-background) !important;
+}
+
+.el-card {
+  border-radius: var(--launcher-radius-lg) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.el-table {
+  --el-table-header-bg-color: #f6f8fb;
+  --el-table-row-hover-bg-color: #f3f8fe;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+html.dark .el-table {
+  --el-table-header-bg-color: #2d384a;
+  --el-table-row-hover-bg-color: #334255;
+}
 
 /* Animations */
 @keyframes fadeIn {
@@ -127,7 +158,7 @@ html.motion-off .profile-form-card .el-divider {
 .common-card {
   width: 240px;
   background: var(--color-card-background);
-  border-radius: 12px;
+  border-radius: var(--launcher-radius-md);
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -137,15 +168,15 @@ html.motion-off .profile-form-card .el-divider {
 }
 
 .common-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(54, 74, 96, 0.12);
 }
 
 /* 统一应用容器，配合 AppLayout.app-container 使用 */
 .app-container{
-  max-width: 1200px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
 }
 
 @media (min-width: 1024px) {
@@ -166,7 +197,7 @@ html.motion-off .profile-form-card .el-divider {
 }
 
 .el-button+.el-button {
-    margin-left: 0
+  margin-left: 0;
 }
 
 .hero-btn.secondary {
@@ -178,4 +209,40 @@ html.motion-off .profile-form-card .el-divider {
 .hero-btn.secondary:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: #fff;
+}
+
+/* 认证页共享结构 */
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-background-hero-light);
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 460px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 16px 40px rgba(40, 58, 79, 0.13);
+}
+
+.auth-title {
+  margin: 0 0 6px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.auth-subtitle {
+  margin: 0;
+  color: var(--color-text-light);
+}
+
+html.dark .auth-panel {
+  background: rgba(42, 52, 67, 0.92);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
 }

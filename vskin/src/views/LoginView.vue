@@ -1,6 +1,6 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
+  <div class="login-container auth-shell">
+    <div class="login-card auth-panel">
       <div class="login-header">
         <h1>欢迎回来</h1>
         <p>登录您的账号</p>
@@ -131,25 +131,11 @@ async function login() {
 
 <style scoped>
 .login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: var(--color-background-hero-light);
   transition: background 0.3s ease;
 }
 
 .login-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-card-background);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.5s ease-out;
-  border: 1px solid var(--color-border);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 @keyframes slideUp {
@@ -170,8 +156,8 @@ async function login() {
 
 .login-header h1 {
   margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 760;
   color: var(--color-heading);
   transition: color 0.3s ease;
 }

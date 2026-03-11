@@ -32,7 +32,7 @@
           />
 
           <!-- Mobile Nav Trigger -->
-          <div class="mobile-nav" v-if="isLogged">
+          <div class="mobile-nav">
             <el-button @click="drawer = true" :icon="MenuIcon" text circle class="mobile-menu-btn" />
           </div>
 
@@ -207,9 +207,9 @@ const adminNavLinks = [
 
 const navLinks = computed(() => {
   if (route.path.startsWith('/admin')) return adminNavLinks
-  const links = []
+  const links = [{ path: '/', title: '发现', icon: Odometer }]
+  if (enableSkinLibrary.value) links.push({ path: '/skin-library', title: '资源库', icon: Picture })
   if (isLogged.value) {
-    if (enableSkinLibrary.value) links.push({ path: '/skin-library', title: '皮肤库', icon: Picture })
     links.push(...dashboardLinks)
     if (isAdmin.value) links.push({ path: '/admin', title: '管理面板', icon: Tools })
   }
@@ -217,12 +217,12 @@ const navLinks = computed(() => {
 })
 
 const drawerLinks = computed(() => {
-  const links = []
+  const links = [{ path: '/', title: '发现', icon: Odometer }]
+  if (enableSkinLibrary.value) links.push({ path: '/skin-library', title: '资源库', icon: Picture })
   if (isLogged.value) {
-    if (enableSkinLibrary.value) links.push({ path: '/skin-library', title: '皮肤库', icon: Picture })
     links.push({ isDivider: true })
     links.push(...dashboardLinks)
-    if (isAdmin.value) { links.push({ isDivider: true }); links.push(...adminNavLinks); }
+    if (isAdmin.value) { links.push({ isDivider: true }); links.push(...adminNavLinks) }
   }
   return links
 })
@@ -324,19 +324,30 @@ onUnmounted(() => {
 @import "@/assets/styles/cards.css";
 @import "@/assets/styles/footers.css";
 
-.app-shell { min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
 
 /* Home Mode Shell - Strict首屏，防止滚动 */
 .is-home-layout { height: 100vh; overflow: hidden; }
 
 .layout-header-wrap {
-  padding: 0 20px; background: var(--color-header-background); backdrop-filter: blur(8px);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-bottom: 1px solid var(--color-border);
-  height: 64px; z-index: 100; flex-shrink: 0;
+  padding: 10px 16px 0;
+  background: transparent;
+  height: 74px;
+  z-index: 100;
+  flex-shrink: 0;
 }
 
 .is-home-layout .layout-header-wrap {
-  position: absolute; top: 0; left: 0; right: 0; background: transparent; border-bottom: none; box-shadow: none; backdrop-filter: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
 }
 
 /* Home Layout UI Enforcement - Scoped to .layout-header */
@@ -374,23 +385,70 @@ onUnmounted(() => {
 .mobile-drawer :deep(.el-menu-item) { color: var(--color-text); border-radius: 8px; margin: 4px 8px; height: 44px; line-height: 44px; }
 .mobile-drawer :deep(.el-menu-item.is-active) { background-color: rgba(64, 158, 255, 0.1); color: var(--el-color-primary); font-weight: 600; }
 
-.layout-header { display: flex; align-items: center; justify-content: space-between; height: 100%; }
-.logo { font-weight: 700; font-size: 20px; color: var(--color-heading); cursor: pointer; border-radius: 8px; padding: 4px 8px; transition: background-color 0.2s; }
-.logo:hover { color: var(--el-color-primary); }
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 100%;
+  border: 1px solid var(--color-border);
+  background: var(--color-header-background);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  padding: 0 12px;
+  box-shadow: 0 8px 24px rgba(54, 70, 90, 0.1);
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 21px;
+  color: #24435f;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 4px 12px;
+  transition: background-color 0.2s;
+}
+
+.logo:hover {
+  color: #1f5f8e;
+  background: #e7f1fb;
+}
 
 .desktop-nav { flex-grow: 1; display: flex; justify-content: center; height: 100%; }
 .desktop-nav .el-menu { border-bottom: none; height: 100%; background: transparent; }
 
+.desktop-nav :deep(.el-menu-item) {
+  border-radius: 10px;
+  margin: 10px 4px;
+  height: 42px;
+  line-height: 42px;
+  color: #4e5f74;
+}
+
+.desktop-nav :deep(.el-menu-item.is-active) {
+  background: #d8ebfb;
+  color: #2d648f;
+  font-weight: 700;
+}
+
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .theme-toggle { font-size: 20px; border-radius: 8px; }
+.mobile-nav { display: none; }
 
-.app-main { padding: 20px; flex: 1; display: flex; flex-direction: column; background-color: var(--color-background); transition: padding 0.3s ease; }
+.app-main {
+  padding: 10px 14px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  transition: padding 0.3s ease;
+}
 .is-home-layout .app-main { padding: 0; flex: 1; height: 0; min-height: 0; }
 .is-auth-layout .app-main { padding: 0 !important; }
 
 /* Account */
 .account-trigger { display:flex; align-items:center; cursor:pointer; gap:8px; padding:6px 12px; border-radius:20px; transition: background-color 0.2s; }
-.account-trigger:hover { background: var(--color-background-soft); }
+.account-trigger:hover { background: #e9f1f9; }
 .account-name { font-size:14px; color: var(--color-text); font-weight:500; }
 .account-popover { padding: 0 !important; background: var(--color-popover-background) !important; border: 1px solid var(--color-border) !important; }
 

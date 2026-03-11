@@ -1,9 +1,9 @@
 <template>
-  <div class="oauth-authorize-page">
+  <div class="oauth-authorize-page auth-shell">
     <div class="bg-orb orb-a"></div>
     <div class="bg-orb orb-b"></div>
 
-    <div class="authorize-card">
+    <div class="authorize-card auth-panel">
       <div class="authorize-header">
         <h1>授权登录</h1>
         <p>外部应用正在请求访问你的 vSkin 账号</p>
@@ -159,14 +159,8 @@ onMounted(loadAuthorizeInfo)
 
 <style scoped>
 .oauth-authorize-page {
-  min-height: 100vh;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: radial-gradient(circle at 0% 0%, #ffe8be 0%, #fff7ec 40%, #f8f1e8 100%);
 }
 
 .bg-orb {
@@ -179,7 +173,7 @@ onMounted(loadAuthorizeInfo)
 .orb-a {
   width: 340px;
   height: 340px;
-  background: #f9bb74;
+  background: #8ebadb;
   left: -60px;
   top: -40px;
 }
@@ -187,7 +181,7 @@ onMounted(loadAuthorizeInfo)
 .orb-b {
   width: 320px;
   height: 320px;
-  background: #8ac9ff;
+  background: #b5c5db;
   right: -80px;
   bottom: -60px;
 }
@@ -195,25 +189,18 @@ onMounted(loadAuthorizeInfo)
 .authorize-card {
   position: relative;
   z-index: 1;
-  width: 100%;
-  max-width: 640px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 20px;
-  box-shadow: 0 14px 48px rgba(52, 35, 13, 0.16);
-  backdrop-filter: blur(10px);
-  padding: 28px;
+  max-width: 680px;
 }
 
 .authorize-header h1 {
   margin: 0;
   font-size: 30px;
-  color: #3b2a14;
+  color: var(--color-heading);
 }
 
 .authorize-header p {
   margin: 8px 0 22px;
-  color: #6e5d49;
+  color: var(--color-text-light);
 }
 
 .app-info {
@@ -223,7 +210,7 @@ onMounted(loadAuthorizeInfo)
 .oauth-request-title {
   font-size: 18px;
   font-weight: 700;
-  color: #2d2418;
+  color: var(--color-heading);
   margin-bottom: 12px;
 }
 
@@ -236,17 +223,17 @@ onMounted(loadAuthorizeInfo)
   display: grid;
   gap: 4px;
   padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #f1dfc8;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
 }
 
 .scope-item strong {
-  color: #2d2418;
+  color: var(--color-heading);
 }
 
 .scope-item span {
-  color: #7a6a58;
+  color: var(--color-text-light);
   font-size: 13px;
 }
 

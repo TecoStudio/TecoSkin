@@ -1,6 +1,6 @@
 <template>
-  <div class="register-container">
-    <div class="register-card">
+  <div class="register-container auth-shell">
+    <div class="register-card auth-panel">
       <div class="register-header">
         <h1>注册账号</h1>
         <p>创建一个新账号来开始使用</p>
@@ -238,25 +238,11 @@ async function register() {
 
 <style scoped>
 .register-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: var(--color-background-hero-light);
   transition: background 0.3s ease;
 }
 
 .register-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-card-background);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.5s ease-out;
-  border: 1px solid var(--color-border);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 @keyframes slideUp {
@@ -277,8 +263,8 @@ async function register() {
 
 .register-header h1 {
   margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 760;
   color: var(--color-heading);
   transition: color 0.3s ease;
 }
