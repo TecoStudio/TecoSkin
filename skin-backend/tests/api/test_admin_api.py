@@ -42,6 +42,8 @@ async def test_api_admin_settings_janus(client, admin_headers):
         "janus_base_path": "/api/janus",
         "janus_union_mode": "only",
         "janus_union_code": "SJMC_FDC_MUA",
+        "janus_union_key": "UNION_SECRET_KEY_123",
+        "janus_external_write_protection": True,
     }
     resp = await client.post(
         "/admin/settings/janus",
@@ -59,6 +61,8 @@ async def test_api_admin_settings_janus(client, admin_headers):
     assert data["janus_base_path"] == "/api/janus"
     assert data["janus_union_mode"] == "only"
     assert data["janus_union_code"] == "SJMC_FDC_MUA"
+    assert data["janus_union_key"] == "UNION_SECRET_KEY_123"
+    assert data["janus_external_write_protection"] is True
 
 @pytest.mark.asyncio
 async def test_api_admin_ban_user(client, admin_headers, user_factory):

@@ -305,9 +305,22 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-form-item label="Union 站点密钥 (Key)">
+          <el-input
+            v-model="settings.janus.janus_union_key"
+            type="password"
+            show-password
+            placeholder="填写 Union 返回的 key"
+          />
+          <p class="hint-text">该密钥仅在后台保存，不会出现在对外公开接口返回中。</p>
+        </el-form-item>
         <el-form-item label="自动同步开关">
           <el-switch v-model="settings.janus.janus_union_auto_sync" />
           <span class="hint-text ml-4">预留配置项，便于后续对接 Union 数据同步任务。</span>
+        </el-form-item>
+        <el-form-item label="外部写入保护">
+          <el-switch v-model="settings.janus.janus_external_write_protection" />
+          <span class="hint-text ml-4">开启后，联合认证外部来源不得修改本站用户、角色、材质等核心数据。</span>
         </el-form-item>
       </el-form>
     </el-card>
@@ -362,7 +375,9 @@ const settings = reactive({
     janus_union_api_base: 'https://skin.mualliance.ltd/api/union',
     janus_union_mode: 'all',
     janus_union_code: '',
+    janus_union_key: '',
     janus_union_auto_sync: false,
+    janus_external_write_protection: true,
   }
 })
 

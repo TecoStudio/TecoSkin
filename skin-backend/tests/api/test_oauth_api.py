@@ -296,6 +296,24 @@ async def test_oauth_device_flow_and_openid_metadata(client, admin_headers, auth
     assert janus_openid_data["token_endpoint"].endswith("/api/janus/oauth/token")
     assert janus_openid_data["device_authorization_endpoint"].endswith("/api/janus/oauth/device/code")
     assert janus_openid_data["shared_client_id"] == str(app["app_id"])
+    union_meta = janus_openid_data.get("union", {})
+    assert union_meta.get("database_sovereignty") == "local_only"
+    assert union_meta.get("external_write_protection") is True
+    assert union_meta.get("key_configured") is False
+    assert "key" not in union_meta
+
+    save_janus_resp = await client.post(
+        "/admin/settings/janus",
+        json={"janus_union_key": "TOP_SECRET_KEY"},
+        headers=admin_h,
+    )
+    assert save_janus_resp.status_code == 200
+
+    janus_openid_resp_after_key = await client.get("/api/janus/.well-known/openid-configuration")
+    assert janus_openid_resp_after_key.status_code == 200
+    union_meta_after_key = janus_openid_resp_after_key.json().get("union", {})
+    assert union_meta_after_key.get("key_configured") is True
+    assert "TOP_SECRET_KEY" not in str(janus_openid_resp_after_key.json())
 
     janus_jwks_resp = await client.get("/api/janus/oauth/jwks")
     assert janus_jwks_resp.status_code == 200

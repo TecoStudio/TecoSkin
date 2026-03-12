@@ -116,7 +116,9 @@ class AdminBackend:
             "janus_union_api_base": s.get("janus_union_api_base", "https://skin.mualliance.ltd/api/union"),
             "janus_union_mode": union_mode,
             "janus_union_code": s.get("janus_union_code", ""),
+            "janus_union_key": s.get("janus_union_key", ""),
             "janus_union_auto_sync": s.get("janus_union_auto_sync", "false") == "true",
+            "janus_external_write_protection": s.get("janus_external_write_protection", "true") == "true",
         }
 
     async def get_fallback_settings(self):
@@ -157,7 +159,9 @@ class AdminBackend:
                 "janus_union_api_base",
                 "janus_union_mode",
                 "janus_union_code",
+                "janus_union_key",
                 "janus_union_auto_sync",
+                "janus_external_write_protection",
             ],
         }
         
@@ -215,6 +219,9 @@ class AdminBackend:
                     val = mode
 
                 if key in {"janus_issuer", "janus_union_api_base"}:
+                    val = str(val or "").strip()
+
+                if key == "janus_union_key":
                     val = str(val or "").strip()
                 
                 value = "true" if isinstance(val, bool) and val else ("false" if isinstance(val, bool) else str(val))

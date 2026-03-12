@@ -40,7 +40,9 @@ janus:
   union_api_base: "https://skin.mualliance.ltd/api/union"
   union_mode: "all"        # all / only / excludes
   union_code: ""           # only/excludes 模式下可填写皮肤站缩写白黑名单代码
+  union_key: ""            # Union 返回的站点密钥（仅后台存储，不会暴露到公开接口）
   union_auto_sync: false
+  external_write_protection: true  # 开启后拒绝任何外部联合认证来源对本站核心业务数据执行写入
 
 # CORS 跨域配置
 cors:

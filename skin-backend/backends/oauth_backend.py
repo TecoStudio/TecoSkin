@@ -126,11 +126,24 @@ class OAuthBackend:
         mode = (await self._get_setting_text("janus_union_mode", "all")).strip().lower() or "all"
         if mode not in {"all", "only", "excludes"}:
             mode = "all"
+        union_key = await self._get_setting_text(
+            "janus_union_key",
+            str(self.config.get("janus.union_key", "") or ""),
+        )
+        external_write_protection = (
+            await self._get_setting_text(
+                "janus_external_write_protection",
+                "true" if bool(self.config.get("janus.external_write_protection", True)) else "false",
+            )
+        ).lower() == "true"
         return {
             "api_base": await self._get_setting_text("janus_union_api_base", str(self.config.get("janus.union_api_base", "https://skin.mualliance.ltd/api/union") or "https://skin.mualliance.ltd/api/union")),
             "mode": mode,
             "code": await self._get_setting_text("janus_union_code", ""),
             "auto_sync": (await self._get_setting_text("janus_union_auto_sync", "false")).lower() == "true",
+            "key_configured": bool(str(union_key or "").strip()),
+            "external_write_protection": external_write_protection,
+            "database_sovereignty": "local_only",
         }
 
     def _verification_uri(self) -> str:

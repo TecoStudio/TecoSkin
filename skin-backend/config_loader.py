@@ -82,7 +82,9 @@ class Config:
                 "union_api_base": "https://skin.mualliance.ltd/api/union",
                 "union_mode": "all",
                 "union_code": "",
+                "union_key": "",
                 "union_auto_sync": False,
+                "external_write_protection": True,
             },
             "rate_limit": {
                 "enabled": True,
