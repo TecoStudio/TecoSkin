@@ -94,6 +94,7 @@ class AdminBackend:
             "smtp_user": s.get("smtp_user", ""),
             "smtp_ssl": s.get("smtp_ssl", "true") == "true",
             "smtp_sender": s.get("smtp_sender", ""),
+            "email_template_html": s.get("email_template_html", ""),
         }
 
     async def get_fallback_settings(self):
@@ -125,7 +126,7 @@ class AdminBackend:
             "security": ["rate_limit_enabled", "rate_limit_auth_attempts", "rate_limit_auth_window", "enable_strong_password_check"],
             "auth": ["jwt_expire_days"],
             "microsoft": ["microsoft_client_id", "microsoft_client_secret", "microsoft_redirect_uri"],
-            "email": ["email_verify_enabled", "email_verify_ttl", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_ssl", "smtp_sender"],
+            "email": ["email_verify_enabled", "email_verify_ttl", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_ssl", "smtp_sender", "email_template_html"],
             "fallback": ["fallback_strategy"]
         }
         

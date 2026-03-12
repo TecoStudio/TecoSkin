@@ -23,6 +23,7 @@
             :prefix-icon="Message"
             @keyup.enter="register"
           />
+          <p v-if="registerEmailSuffixes.length" class="hint-text">仅允许使用以下邮箱后缀：{{ registerEmailSuffixesLabel }}</p>
         </el-form-item>
 
         <el-form-item v-if="emailVerifyEnabled" label="验证码" prop="code">
@@ -101,7 +102,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -121,9 +122,14 @@ const form = reactive({
 })
 
 const emailVerifyEnabled = ref(false)
+const registerEmailSuffixes = ref([])
 const codeLoading = ref(false)
 const countdown = ref(0)
 let timer = null
+
+const registerEmailSuffixesLabel = computed(() => {
+  return registerEmailSuffixes.value.map(item => `@${item}`).join('、')
+})
 
 const rules = {
   username: [
@@ -134,7 +140,22 @@ const rules = {
   ],
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        const suffixes = registerEmailSuffixes.value
+        if (!suffixes.length) return callback()
+        const parts = String(value || '').split('@')
+        if (parts.length !== 2) return callback()
+        const domain = parts[1].toLowerCase()
+        const allowed = suffixes.some((suffix) => domain === suffix || domain.endsWith(`.${suffix}`))
+        if (!allowed) {
+          return callback(new Error('该邮箱后缀不在允许列表中'))
+        }
+        return callback()
+      },
+      trigger: 'blur'
+    }
   ],
   code: [
     { required: true, message: '请输入验证码' }
@@ -164,6 +185,9 @@ onMounted(async () => {
   try {
     const res = await axios.get('/public/settings')
     emailVerifyEnabled.value = res.data.email_verify_enabled
+    if (Array.isArray(res.data.register_email_suffixes)) {
+      registerEmailSuffixes.value = res.data.register_email_suffixes
+    }
   } catch (e) {
     console.error('Failed to fetch settings', e)
   }
@@ -282,6 +306,12 @@ async function register() {
   color: var(--color-text);
   font-size: 14px;
   transition: color 0.3s ease;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-top: 6px;
 }
 
 :deep(.el-form-item__label) {

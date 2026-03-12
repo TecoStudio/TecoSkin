@@ -18,8 +18,61 @@ class EmailSender:
             "password": settings.get("smtp_password", ""),
             "ssl": settings.get("smtp_ssl", "true") == "true",
             "sender": settings.get("smtp_sender", ""),
-            "enabled": settings.get("email_verify_enabled", "false") == "true"
+            "enabled": settings.get("email_verify_enabled", "false") == "true",
+            "site_title": settings.get("site_title", settings.get("site_name", "皮肤站")),
+            "email_template_html": settings.get("email_template_html", ""),
+            "email_verify_ttl": int(settings.get("email_verify_ttl", "300")),
         }
+
+    def _default_template(self) -> str:
+        return """
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+  <head>
+    <meta charset=\"UTF-8\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
+    <title>{{site_title}} 邮件验证</title>
+  </head>
+  <body style=\"margin:0; padding:0; background:#f4f7fb; font-family:'Microsoft YaHei UI','PingFang SC',sans-serif;\">
+    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f7fb; padding:24px 12px;\">
+      <tr>
+        <td align=\"center\">
+          <table width=\"640\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(35,64,95,0.12);\">
+            <tr>
+              <td style=\"background:linear-gradient(135deg,#2f78ba,#4f9ad8); padding:24px 32px; color:#ffffff;\">
+                <div style=\"font-size:18px; font-weight:700; letter-spacing:0.5px;\">{{site_title}}</div>
+                <div style=\"font-size:14px; opacity:0.9; margin-top:6px;\">{{action_title}}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style=\"padding:28px 32px 8px; color:#1f2a36;\">
+                <h2 style=\"margin:0 0 12px; font-size:22px;\">您好，</h2>
+                <p style=\"margin:0 0 16px; font-size:14px; line-height:1.7; color:#4a5a6a;\">
+                  您正在进行 <strong>{{action_title}}</strong> 操作，请使用以下验证码完成验证：
+                </p>
+                <div style=\"background:#f1f6fc; border:1px solid #d7e4f2; border-radius:12px; padding:16px; text-align:center;\">
+                  <span style=\"font-size:28px; letter-spacing:6px; color:#2f78ba; font-weight:700;\">{{code}}</span>
+                </div>
+                <p style=\"margin:16px 0 0; font-size:13px; color:#6a7b8c;\">验证码有效期约 {{ttl_minutes}} 分钟，请尽快完成验证。</p>
+                <p style=\"margin:10px 0 0; font-size:12px; color:#9aa7b4;\">如果这不是您本人操作，请忽略此邮件。</p>
+              </td>
+            </tr>
+            <tr>
+              <td style=\"padding:16px 32px 28px; color:#9aa7b4; font-size:12px;\">此邮件由 {{site_title}} 自动发送，请勿直接回复。</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+""".strip()
+
+    def _render_template(self, template: str, values: dict) -> str:
+        html = template
+        for key, value in values.items():
+            html = html.replace("{{" + key + "}}", str(value))
+        return html
 
     async def send_verification_code(self, to_email: str, code: str, type: str):
         settings = await self._get_settings()
@@ -27,49 +80,48 @@ class EmailSender:
             return False
 
         if not settings["host"]:
-             print("SMTP host not configured.")
-             return False
+            print("SMTP host not configured.")
+            return False
 
-        subject = "SkinServer 验证码"
+        site_title = str(settings["site_title"] or "皮肤站")
+        ttl_minutes = max(1, round(settings["email_verify_ttl"] / 60))
+
         if type == "register":
-            body = f"""
-            <html>
-            <body>
-                <h2>欢迎注册 SkinServer</h2>
-                <p>您的验证码是：<strong style="font-size: 20px; color: #409EFF;">{code}</strong></p>
-                <p>该验证码将在几分钟后过期，请尽快完成注册。</p>
-            </body>
-            </html>
-            """
+            action_title = "注册验证"
+            subject = f"{site_title} 注册验证码"
         elif type == "reset":
-            body = f"""
-            <html>
-            <body>
-                <h2>SkinServer 密码重置</h2>
-                <p>您正在进行密码重置操作。</p>
-                <p>您的验证码是：<strong style="font-size: 20px; color: #409EFF;">{code}</strong></p>
-                <p>如果这不是您本人的操作，请忽略此邮件。</p>
-            </body>
-            </html>
-            """
+            action_title = "密码重置"
+            subject = f"{site_title} 密码重置验证码"
         else:
             return False
 
+        template = settings["email_template_html"] or self._default_template()
+        body = self._render_template(
+            template,
+            {
+                "site_title": site_title,
+                "code": code,
+                "type": type,
+                "action_title": action_title,
+                "ttl_minutes": ttl_minutes,
+            },
+        )
+
         message = MIMEMultipart()
-        
+
         # RFC-compliant From header construction
         sender_name, sender_addr = parseaddr(settings["sender"])
         # Fallback to smtp_user if sender address is empty
         if not sender_addr and settings["user"]:
             sender_addr = settings["user"]
-        
+
         if sender_name:
-            message["From"] = formataddr((Header(sender_name, 'utf-8').encode(), sender_addr))
+            message["From"] = formataddr((Header(sender_name, "utf-8").encode(), sender_addr))
         else:
             message["From"] = sender_addr
 
         message["To"] = to_email
-        message["Subject"] = Header(subject, 'utf-8')
+        message["Subject"] = Header(subject, "utf-8")
         message.attach(MIMEText(body, "html", "utf-8"))
 
         try:

@@ -321,6 +321,24 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
         fallbacks = await site_backend.get_fallback_services()
         primary = fallbacks[0] if fallbacks else None
         site_name = settings.get("site_name", "皮肤站")
+        raw_suffixes = settings.get("register_email_suffixes", "")
+        if isinstance(raw_suffixes, list):
+            suffix_list = [str(item).strip() for item in raw_suffixes if str(item).strip()]
+        else:
+            suffix_list = [
+                item.strip()
+                for item in str(raw_suffixes or "").replace("\n", ",").split(",")
+                if item.strip()
+            ]
+        normalized_suffixes = []
+        for item in suffix_list:
+            token = str(item).strip().lower()
+            token = token.lstrip("@")
+            if token.startswith("."):
+                token = token[1:]
+            if token:
+                normalized_suffixes.append(token)
+        normalized_suffixes = list(dict.fromkeys(normalized_suffixes))
 
         return {
             "site_name": site_name,
@@ -328,6 +346,7 @@ def setup_routes(db: Database, site_backend, oauth_backend, rate_limiter, config
             "site_logo": settings.get("site_logo", ""),
             "site_subtitle": settings.get("site_subtitle", "简洁、高效、现代的 Minecraft 皮肤管理站"),
             "allow_register": settings.get("allow_register", "true") == "true",
+            "register_email_suffixes": normalized_suffixes,
             "enable_skin_library": settings.get("enable_skin_library", "true") == "true",
             "email_verify_enabled": settings.get("email_verify_enabled", "false") == "true",
             "footer_text": settings.get("footer_text", ""),

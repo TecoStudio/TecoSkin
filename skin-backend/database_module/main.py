@@ -544,6 +544,9 @@ class Database(BaseDB):
             await conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_sender', 'SkinServer <no-reply@example.com>')"
             )
+            await conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES ('email_template_html', '')"
+            )
 
             await conn.commit()
 

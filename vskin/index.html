@@ -5,9 +5,50 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>皮肤站</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { background: #f4f7fb; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+      .app-boot {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2e3a48;
+      }
+      .app-boot-card {
+        background: #ffffff;
+        border: 1px solid #e3e8f0;
+        border-radius: 16px;
+        padding: 24px 28px;
+        box-shadow: 0 12px 30px rgba(35, 64, 95, 0.12);
+        text-align: center;
+        min-width: 240px;
+      }
+      .app-boot-title { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+      .app-boot-subtitle { font-size: 13px; color: #6a7b8c; margin-bottom: 14px; }
+      .app-boot-bar { height: 4px; background: #e7eef7; border-radius: 999px; overflow: hidden; }
+      .app-boot-bar span {
+        display: block; height: 100%; width: 40%;
+        background: linear-gradient(90deg, #2f78ba, #4f9ad8);
+        animation: bootMove 1.4s ease-in-out infinite;
+      }
+      @keyframes bootMove {
+        0% { transform: translateX(-120%); }
+        60% { transform: translateX(140%); }
+        100% { transform: translateX(140%); }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="app-boot">
+        <div class="app-boot-card">
+          <div class="app-boot-title">正在载入皮肤站</div>
+          <div class="app-boot-subtitle">首次加载可能需要一点时间</div>
+          <div class="app-boot-bar"><span></span></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
